@@ -40,10 +40,15 @@ Build a basic Simultaneous Localization and Mapping system that creates a 3D map
 - **Key Skills**: Loop closure, graph optimization, landmark management
 - **Difficulty**: Intermediate
 
-### [Chapter 4: Deep Learning for Visual Navigation](chapters/4/) *(Coming Soon)*
-Implement learning-based navigation using neural networks.
-- **Dataset**: Custom + Synthetic
-- **Key Skills**: CNN pose estimation, reinforcement learning
+### [Chapter 4: Deep Learning for Visual Navigation](chapters/4/index.md)
+Implement learning-based navigation using neural networks and learn how CNNs can directly estimate camera pose.
+
+![Neural Network Navigation](chapters/4/images/boneyard_flyover.gif)
+
+*CNN-based navigation flying over the Davis-Monthan Aircraft Boneyard - the neural network predicts camera position and orientation from raw aerial imagery*
+
+- **Dataset**: RarePlanes + Custom Aerial Imagery
+- **Key Skills**: CNN pose estimation, neural network architecture, training pipelines
 - **Difficulty**: Advanced
 
 ### [Chapter 5: Sensor Fusion](chapters/5/) *(Coming Soon)*
