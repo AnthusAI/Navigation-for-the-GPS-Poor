@@ -38,10 +38,10 @@ Over longer distances, this drift becomes more pronounced:
 ### A Case Study in Drift: The Altitude Problem
 This drift is most dramatic in dimensions where the algorithm has the least confidence. For a car driving on a relatively flat road, there is very little up-and-down motion. This gives the algorithm very few visual cues to measure altitude accurately. As a result, small, random errors in the vertical estimate accumulate rapidly, causing a large, noisy drift in that specific dimension.
 
-You can see this clearly in the 3D trajectory plot for the first 200 frames: the altitude (-Y axis) is erratic and drifts significantly, while the ground path (X-Z plane) is much more stable and follows the ground truth.
+The 3D trajectory plot for the first 100 frames illustrates this effect. While the horizontal path (X-Z plane) tracks quite well, the altitude estimate (-Y axis) fails to capture the gentle descent that the ground truth shows. By frame 100, the car has actually descended about 3 meters, but our algorithm thinks it's barely moved vertically at all.
 
-![3D Trajectory (200 frames)](images/trajectory_3d_200.png)
-*The 3D view shows significant drift on the vertical axis (-Y), which represents altitude. This is because there are few visual cues for the algorithm to reliably track up-and-down motion.*
+![3D Trajectory (100 frames)](images/trajectory_3d_100.png)
+*The 3D view clearly shows the altitude problem. The estimated path (purple) stays nearly flat while the ground truth (red) shows a gentle descent. This happens because the car's minimal up-and-down motion provides very few visual cues for accurate vertical tracking.*
 
 ## What Are We Actually Doing?
 

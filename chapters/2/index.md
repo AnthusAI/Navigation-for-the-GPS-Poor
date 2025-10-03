@@ -88,10 +88,10 @@ The numbers confirm what our eyes see. The stereo system is not just a little be
 
 | Metric (1000 frames) | Monocular VO | Stereo VO | Improvement |
 | :--- | :--- | :--- | :--- |
-| **RMS Position Error** | 335.10 m | **22.54 m** | **93.27%** |
-| **Mean Position Error**| 268.57 m | **16.83 m** | **93.73%** |
+| **RMS Position Error** | 348.82 m | **22.54 m** | **93.54%** |
+| **Mean Position Error**| 277.07 m | **16.83 m** | **93.93%** |
 
-After driving for roughly 600 meters, the monocular system thought it was over 335 meters off course. The stereo system was off by only 22 meters. This is the power of seeing in 3D.
+After driving for roughly 600 meters, the monocular system thought it was over 348 meters off course. The stereo system was off by only 22 meters. This is the power of seeing in 3D.
 
 ## Conclusion: The Value of a Second Viewpoint
 

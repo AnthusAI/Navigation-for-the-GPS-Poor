@@ -149,12 +149,13 @@ class PoseEstimator:
             )
             
             # Check if points are in front of first camera (positive Z)
-            if np.sum(points_3d[:, 2] > 0) < len(points_3d) * 0.7:
+            # Use lenient 30% threshold - monocular VO can work with partial visibility
+            if np.sum(points_3d[:, 2] > 0) < len(points_3d) * 0.3:
                 return False
             
             # Transform points to second camera frame and check
             points_3d_cam2 = (R @ points_3d.T + t.reshape(-1, 1)).T
-            if np.sum(points_3d_cam2[:, 2] > 0) < len(points_3d_cam2) * 0.7:
+            if np.sum(points_3d_cam2[:, 2] > 0) < len(points_3d_cam2) * 0.3:
                 return False
             
             return True
