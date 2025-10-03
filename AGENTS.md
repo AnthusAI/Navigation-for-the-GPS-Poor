@@ -31,11 +31,11 @@ This project is a comprehensive tutorial series teaching computer vision and nav
 - Trajectory visualization
 
 **Implementation Tasks**:
-- [ ] Dataset fetching from KITTI
-- [ ] Feature detection pipeline
-- [ ] Motion estimation
-- [ ] Trajectory plotting
-- [ ] Error analysis
+- [x] Dataset fetching from KITTI
+- [x] Feature detection pipeline
+- [x] Motion estimation
+- [x] Trajectory plotting
+- [x] Error analysis
 
 ### Chapter 2: Stereo Visual Odometry
 **Goal**: Solve the scale ambiguity problem using a second camera to perceive depth.
@@ -47,20 +47,20 @@ This project is a comprehensive tutorial series teaching computer vision and nav
 - Eliminating the need for ground truth scale
 
 **Implementation Tasks**:
-- [ ] Load stereo image pairs from KITTI
-- [ ] Match features between left/right frames to find disparity
-- [ ] Triangulate 3D points from stereo matches
-- [ ] Track 3D points across time to estimate camera motion
-- [ ] Build and visualize the scaled trajectory
+- [x] Load stereo image pairs from KITTI
+- [x] Match features between left/right frames to find disparity
+- [x] Triangulate 3D points from stereo matches
+- [x] Track 3D points across time to estimate camera motion
+- [x] Build and visualize the scaled trajectory
 
 ### Chapter 3: SLAM Fundamentals
 **Goal**: Build a basic SLAM system
 **Dataset**: TUM RGB-D Dataset
 **Key Concepts**:
-- Simultaneous Localization and Mapping
-- Loop closure detection
-- Bundle adjustment basics
-- Map representation
+- [x] Simultaneous Localization and Mapping
+- [x] Loop closure detection
+- [x] Bundle adjustment basics
+- [x] Map representation
 
 ### Chapter 4: Deep Learning for Visual Navigation
 **Goal**: Implement learning-based navigation

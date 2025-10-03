@@ -29,10 +29,15 @@ Solve the scale ambiguity problem from Chapter 1 using a second camera to percei
 - **Difficulty**: Intermediate
 - **Results**: 75% improvement in accuracy over monocular vision
 
-### [Chapter 3: SLAM Fundamentals](chapters/3/) *(Coming Soon)*
-Build a basic Simultaneous Localization and Mapping system.
+### [Chapter 3: SLAM Fundamentals](chapters/3/index.md)
+Build a basic Simultaneous Localization and Mapping system that creates a 3D map of its environment.
+
+![SLAM 3D Map](chapters/3/images/slam_map_3d_200.png)
+
+*A 3D map of an office environment built in real-time using SLAM.*
+
 - **Dataset**: TUM RGB-D Dataset
-- **Key Skills**: Loop closure, bundle adjustment, map representation
+- **Key Skills**: Loop closure, graph optimization, landmark management
 - **Difficulty**: Intermediate
 
 ### [Chapter 4: Deep Learning for Visual Navigation](chapters/4/) *(Coming Soon)*

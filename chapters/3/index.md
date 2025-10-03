@@ -57,6 +57,11 @@ Here's what our SLAM system produces after processing just 200 frames:
 
 ---
 
+## Prerequisites
+
+- **Completed Chapters 1 & 2**: This chapter assumes a solid understanding of visual odometry, feature matching, and camera geometry.
+- **Python with OpenCV, NumPy, and SciPy**: Ensure your environment is set up correctly.
+
 ## What You'll Learn
 
 - The fundamental SLAM problem and why it's different from odometry.
@@ -64,13 +69,6 @@ Here's what our SLAM system produces after processing just 200 frames:
 - Data association and loop closure detection techniques.
 - The concept of graph-based optimization (pose graphs).
 - How to implement a back-end to correct accumulated drift.
-
-## Prerequisites
-
-- Completed Chapters 1 and 2 (visual odometry fundamentals).
-- Understanding of feature detection and matching.
-- Basic linear algebra (transformation matrices).
-- Python with OpenCV, NumPy, and SciPy.
 
 ## Dataset: TUM RGB-D
 
@@ -120,4 +118,16 @@ The dataset will be automatically downloaded when you run the demo notebook.
 ---
 
 Ready to build your first SLAM system? Let's dive into the implementation!
+
+## Practical Implementation
+
+See the accompanying Jupyter notebook (`demo.ipynb`) for the complete implementation with detailed explanations and visualizations.
+
+---
+
+## Next Steps
+
+⬅️ **[Previous: Chapter 2: Stereo Visual Odometry](chapters/2/index.md)**
+
+➡️ **[Coming Soon: Chapter 4: Deep Learning for Visual Navigation]()**
 

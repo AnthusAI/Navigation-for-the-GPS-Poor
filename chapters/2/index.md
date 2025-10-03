@@ -16,37 +16,24 @@ Your brain uses the slightly different perspectives from your two eyes to percei
 
 In this chapter, we will upgrade our system by adding a second camera, creating a **stereo visual odometry** pipeline that can see the world in 3D and measure its own movement in real-world units.
 
-### Our Goal for This Chapter
-By using two cameras with a known, fixed distance between them (the **baseline**), we will:
-1.  **Calculate Depth:** Match features between the left and right images to calculate the true 3D distance to points in the world.
-2.  **Eliminate Scale Ambiguity:** Recover the camera's motion in meters, creating a trajectory that has a correct, real-world scale.
-3.  **Quantify the Improvement:** Directly compare the stereo system against our previous monocular system to prove its superior accuracy.
+### From Two Images to a 3D World
 
----
+Here's how our stereo system turns two flat images into a 3D understanding of the scene:
 
-## How Stereo Vision Works: From Two Images to 3D Points
-
-When two cameras are mounted side-by-side, the same real-world point appears at slightly different pixel locations in each image. This difference is called **disparity**, and it's inversely proportional to depth. Nearby objects have a large disparity; faraway objects have a small one.
-
-![Stereo Pair Example](images/stereo_pair_example.png)
-*The same scene captured by two cameras mounted 54cm apart. Notice how the nearby road markings appear to shift more between images than the distant trees.*
-
-Our algorithm exploits this effect in three steps:
-
-### Step 1: Stereo Matching
-First, we find the same distinct feature points in both the left and right images and match them up.
+#### Step 1: Find Corresponding Points
+First, we find the same distinct feature points in both the left and right images and match them up. This process is called **stereo matching**.
 
 ![Stereo Feature Matches](images/stereo_matches.png)
-*Lines connect the same real-world point as seen in both cameras. The horizontal shift between matching points is the disparity.*
+*Lines connect the same real-world point as seen in both cameras. The horizontal shift between matching points is the **disparity**.*
 
-### Step 2: Calculating the Disparity Map
-By doing this for thousands of points, we can create a **disparity map**, which visualizes the depth of the scene. Brighter areas are closer to the cameras (higher disparity), while darker areas are farther away.
+#### Step 2: Visualize Depth with a Disparity Map
+The disparity is inversely proportional to depth: nearby objects have a large disparity, while faraway objects have a small one. By calculating this for thousands of points, we can create a **disparity map** that visualizes the depth of the scene.
 
 ![Disparity Visualization](images/disparity_visualization.png)
-*A dense disparity map calculated from the stereo pair. The nearby road and guardrail are clearly visible as brighter objects.*
+*A dense disparity map where brighter areas are closer to the cameras (higher disparity) and darker areas are farther away.*
 
-### Step 3: Triangulation
-With the disparity, the camera's focal length, and the baseline (all known from calibration), we can use simple geometry to **triangulate** the precise 3D position (X, Y, Z coordinates in meters) of each matched feature. We now have a 3D point cloud of the world.
+#### Step 3: Triangulate to Get 3D Points
+With the disparity, the camera's focal length, and the baseline (the distance between the cameras), we can use simple geometry to **triangulate** the precise 3D position (X, Y, Z coordinates in meters) of each matched feature. We now have a 3D point cloud of the world.
 
 ---
 
@@ -100,3 +87,13 @@ Stereo visual odometry is a powerful technique that solves the fundamental scale
 The trade-off is increased complexity and computational cost, but for any application where an accurate, scaled trajectory is needed without relying on external sensors like GPS, stereo vision is an essential tool.
 
 In the next chapter, we will tackle the final major challenge of visual navigation: **long-term drift**. We will introduce the core concepts of **SLAM (Simultaneous Localization and Mapping)** to build a system that can not only track its motion but also recognize previously visited places to create a globally consistent map.
+
+---
+
+## Next Steps
+
+⬅️ **[Previous: Chapter 1: Simple Visual Odometry](chapters/1/index.md)**
+
+➡️ **[Continue to Chapter 3: SLAM Fundamentals](chapters/3/index.md)**
+
+- **[Coming Soon: Chapter 4: Deep Learning for Visual Navigation]()**

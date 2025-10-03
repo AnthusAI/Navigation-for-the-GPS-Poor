@@ -35,69 +35,37 @@ Over longer distances, this drift becomes more pronounced:
 ![Top-down Trajectory (Full Sequence)](images/trajectory_topdown_full.png)
 *The full ~800 meter sequence shows how drift accumulates. While the algorithm still captures the general shape of the route, the cumulative errors create a chaotic pattern. This is why real-world systems need loop closure detection or periodic GPS updates to "reset" the drift.*
 
-### A Case Study in Drift: The Altitude Problem
-This drift is most dramatic in dimensions where the algorithm has the least confidence. For a car driving on a relatively flat road, there is very little up-and-down motion. This gives the algorithm very few visual cues to measure altitude accurately. As a result, small, random errors in the vertical estimate accumulate rapidly, causing a large, noisy drift in that specific dimension.
+---
 
-The 3D trajectory plot for the first 100 frames illustrates this effect. While the horizontal path (X-Z plane) tracks quite well, the altitude estimate (-Y axis) fails to capture the gentle descent that the ground truth shows. By frame 100, the car has actually descended about 3 meters, but our algorithm thinks it's barely moved vertically at all.
+## How Does It Work Without AI? The Magic of Geometry
 
-![3D Trajectory (100 frames)](images/trajectory_3d_100.png)
-*The 3D view clearly shows the altitude problem. The estimated path (purple) stays nearly flat while the ground truth (red) shows a gentle descent. This happens because the car's minimal up-and-down motion provides very few visual cues for accurate vertical tracking.*
+This technique uses classical computer vision and geometry, not modern AI. Think of it like being a detective—we're looking for clues in the images and using logical reasoning to piece together the story of where the camera moved. The core logic follows a few simple steps: find features, match them, and use geometry to calculate the motion.
 
-## What Are We Actually Doing?
+This classical approach is lightweight, fast, and doesn't require expensive hardware or lengthy "training" phases.
 
-This technique uses classical computer vision and geometry, not modern AI. Think of it like being a detective—we're looking for clues in the images and using logical reasoning to piece together the story of where the camera moved.
+### The Key Insight: Parallax
 
-#### What We ARE Doing (The Process)
-The core logic follows four simple steps:
-1.  **Find distinctive features** in each image (like corners of buildings, unique textures).
-2.  **Match these features** between consecutive images.
-3.  **Use geometry** to calculate how the camera must have moved to see those features from different angles.
-4.  **Chain these movements together** to build a complete path.
+The magic behind it all is **parallax**: when a camera moves, the same real-world points appear in different locations in the images. By tracking how these points move, we can mathematically "reverse engineer" the camera's motion.
 
-This means we are:
-- ✅ Using mathematical relationships between images
-- ✅ Applying geometric principles (like triangulation)
-- ✅ Leveraging known camera properties (calibration)
-
-#### What We're NOT Doing
-- ❌ Training neural networks or machine learning models
-- ❌ Teaching the computer to "recognize" objects
-- ❌ Using any kind of artificial intelligence
-- ❌ Determining your real-world location (like GPS latitude/longitude)
-
-#### The Benefit of a Classical Approach
-By avoiding complex AI models, this method is lightweight, fast, and doesn't require expensive hardware.
-- **No GPUs Needed**: It runs efficiently on standard CPUs.
-- **No "Training" Phase**: Unlike machine learning, there's no need for a massive dataset or a lengthy, power-intensive training process. The only setup required is a one-time camera calibration, which is a simple procedure you can do with a printed checkerboard pattern.
-
-This makes it a practical and accessible solution for many real-world applications.
-
-### How GPS (or other anchors) help absolute positioning
-
-Since visual odometry only knows about relative movement, it can't tell you your address. So how is it useful? Its real power comes from filling in the gaps between other, less frequent location sources. Imagine your GPS only updates once every ten seconds. VO can track the detailed twists and turns happening *between* those GPS updates.
-
-If you occasionally get an absolute position (like GPS, AprilTag markers, Wi‑Fi beacons, or a known map feature), you can “re‑anchor” the VO trajectory to correct the drift:
-- Use VO between anchors for smooth, high‑rate relative motion.
-- When an absolute fix arrives, correct the accumulated offset (relocalize) and continue.
-- Over time, this keeps the trajectory aligned without needing constant GPS.
-
-In practice, systems fuse these signals (e.g., with an extended Kalman filter or pose‑graph optimization). VO provides continuous motion updates, while GPS (or similar) provides periodic absolute corrections. The combination yields both smooth short-term motion and long-term global accuracy.
-
-## The "Magic" Behind It
-
-The key insight is that when a camera moves, the same real-world points appear in different locations in the images. By tracking how these points move across images, we can mathematically "reverse engineer" the camera's motion.
-
-**A Simple Analogy**: Imagine you're looking at a building from your car window. As you drive past, the building appears to move across your field of view. If you know the building's real-world location and how it moved in your vision, you can figure out how your car moved. Visual odometry does this with hundreds of points simultaneously.
+Imagine you're looking at a building from your car window. As you drive past, the building appears to move across your field of view. Visual odometry does this with hundreds of points simultaneously.
 
 ![Parallax Effect](images/simple_analogy_parallax.png)
-*This effect, known as parallax, is the key. From position A, the building appears on the right side of the camera's view. From position B, it has shifted to the left. This apparent motion is directly related to the camera's real motion.*
+*From position A, the building appears on the right side of the camera's view. From position B, it has shifted to the left. This apparent motion is directly related to the camera's real motion.*
 
-**The Camera Calibration**: Every camera has unique properties, most notably the distortion from its lens, which can make straight lines appear curved. Camera calibration is the process of measuring these properties once, creating a "fingerprint" for that specific camera so we can undo the distortion and work with a perfect image. Think of it like knowing the prescription of someone's glasses—once you know that, you can correct for the visual distortion.
+### The Camera's "Fingerprint": Calibration
+
+Every camera lens has unique distortions that can make straight lines appear curved. **Camera calibration** is the one-time process of measuring these properties to create a "fingerprint" for that specific camera. This allows us to undo the distortion and work with a perfect image, ensuring our geometric calculations are accurate.
 
 ![Camera Calibration Analogy](images/camera_calibration_distortion.png)
-*Calibration finds the mathematical rules to transform the distorted image from the camera into a perfect, corrected one, ensuring our geometric calculations are accurate.*
+*Calibration finds the mathematical rules to transform the distorted image from the camera into a perfect, corrected one.*
 
-**Why It Works**: The mathematics of perspective and geometry are universal laws. When we see a square building from an angle, it appears as a trapezoid in the image. The exact shape of that trapezoid tells us precisely what angle we're viewing from. This relationship is completely predictable and reversible.
+---
+
+## Prerequisites
+
+- **Python**: Basic proficiency in Python programming.
+- **NumPy**: Familiarity with NumPy for array manipulation is helpful.
+- **Linear Algebra**: A basic understanding of vectors and matrices will be beneficial, but we'll explain the key concepts as we go.
 
 ## Learning Objectives
 
@@ -456,3 +424,11 @@ Understanding these fundamentals is the first step toward building systems that 
 ## Practical Implementation
 
 See the accompanying Jupyter notebook (`demo.ipynb`) for the complete implementation with detailed explanations and visualizations.
+
+---
+
+## Next Steps
+
+You now have a solid foundation in monocular visual odometry. However, you've also seen its biggest weakness: scale ambiguity.
+
+➡️ **[Continue to Chapter 2: Stereo Visual Odometry](chapters/2/index.md)** to learn how adding a second camera allows us to perceive depth and solve the scale problem for good.
