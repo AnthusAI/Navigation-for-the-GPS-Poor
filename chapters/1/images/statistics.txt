@@ -1,0 +1,22 @@
+
+Visual Odometry Statistics
+========================================
+- **Sequence**: 00
+- **Frames Processed**: 4541 / 4541
+- **Feature Detector**: ORB
+- **Max Features**: 2000
+
+## Performance (First 1000 frames)
+- **Mean Position Error**: 40.935 m
+- **Root Mean Square (RMS) Error**: 53.599 m
+- **Mean Rotational Error (RPE)**: 0.257 degrees/frame
+
+## Performance (Full Sequence - 4541 frames)
+- **Mean Position Error**: 105.747 m
+- **Root Mean Square (RMS) Error**: 140.329 m
+- **Mean Rotational Error (RPE)**: 0.250 degrees/frame
+
+## Interpretation
+The first 1000 frames show good tracking with reasonable drift.
+The full sequence shows significant drift accumulation - this is expected
+for monocular VO over long distances without loop closure correction.

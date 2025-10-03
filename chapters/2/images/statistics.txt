@@ -1,0 +1,20 @@
+Chapter 2: Stereo Visual Odometry - Statistics
+
+Dataset: KITTI Sequence 00 (First 200 frames)
+Stereo Baseline: 0.537 meters
+
+Monocular VO (Chapter 1):
+  Mean translation error: 3.065 m
+  RMS translation error:  3.519 m
+  Mean rotation error:    0.268°
+  
+Stereo VO (Chapter 2):
+  Mean translation error: 69.206 m
+  RMS translation error:  75.708 m
+  Mean rotation error:    0.734°
+  Total stereo matches:   210202
+  Total temporal matches: 249314
+  Average inliers/frame:  719.0
+
+Improvement:
+  Translation error reduction: -2157.6%

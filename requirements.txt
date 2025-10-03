@@ -1,0 +1,25 @@
+# Core dependencies for Navigation for the GPS Poor
+opencv-python>=4.5.0
+numpy>=1.20.0
+scipy>=1.7.0
+matplotlib>=3.3.0
+jupyter>=1.0.0
+ipykernel>=6.0.0
+requests>=2.25.0
+tqdm>=4.60.0
+pillow>=8.0.0
+
+# Optional: Deep learning (uncomment if needed)
+# torch>=1.9.0
+# torchvision>=0.10.0
+# transformers>=4.10.0
+
+# Optional: Dataset utilities (uncomment if needed)
+# huggingface-hub>=0.8.0
+# datasets>=1.18.0
+
+# Development tools (optional)
+# pytest>=6.0.0
+# black>=21.0.0
+# flake8>=3.9.0
+# isort>=5.9.0

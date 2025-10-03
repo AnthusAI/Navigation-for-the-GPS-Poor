@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "navigation-gps-poor"
+version = "0.1.0"
+description = "Computer vision and navigation techniques for GPS-denied environments"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Navigation for the GPS Poor Contributors"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "opencv-python>=4.5.0",
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.3.0",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
+    "requests>=2.25.0",
+    "tqdm>=4.60.0",
+    "pillow>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0.0",
+    "black>=21.0.0",
+    "flake8>=3.9.0",
+    "isort>=5.9.0",
+]
+deep-learning = [
+    "torch>=1.9.0",
+    "torchvision>=0.10.0",
+    "transformers>=4.10.0",
+]
+datasets = [
+    "huggingface-hub>=0.8.0",
+    "datasets>=1.18.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/navigation-gps-poor"
+Repository = "https://github.com/your-username/navigation-gps-poor"
+Issues = "https://github.com/your-username/navigation-gps-poor/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["common*", "chapters*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 88
