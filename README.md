@@ -6,20 +6,22 @@ Let's talk about practical navigation methods using computer vision, sensor fusi
 
 ## Chapters
 
-### [Chapter 1: Simple Visual Odometry with OpenCV](chapters/1/)
+### [Chapter 1: Simple Visual Odometry with OpenCV](chapters/1/index.md)
 Learn the fundamentals of visual odometry using feature matching and camera pose estimation.
 
 ![Feature Matching Example](chapters/1/images/sequence_00_features.gif)
+
 *Feature matching between consecutive KITTI frames - matching features are connected with lines*
 
 - **Dataset**: KITTI Visual Odometry
 - **Key Skills**: Feature detection, essential matrix, trajectory estimation
 - **Difficulty**: Beginner
 
-### [Chapter 2: Stereo Visual Odometry](chapters/2/)
+### [Chapter 2: Stereo Visual Odometry](chapters/2/index.md)
 Solve the scale ambiguity problem from Chapter 1 using a second camera to perceive depth.
 
 ![Disparity Map](chapters/2/images/disparity_visualization.png)
+
 *Disparity map showing depth perception - brighter areas are closer to the camera, darker areas are farther away*
 
 - **Dataset**: KITTI Visual Odometry (Stereo Pairs)
