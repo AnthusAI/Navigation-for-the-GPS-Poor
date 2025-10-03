@@ -89,11 +89,11 @@ def create_loop_closure_diagram(output_path: Path):
     print(f"   ✅ Saved '{output_path.name}'")
 
 
-def create_slam_buildup_animation(output_path: Path, slam: RGBDSlam, rgb_paths, depth_paths, num_frames=100):
+def create_slam_buildup_animation(output_path: Path, slam_factory, rgb_paths, depth_paths, num_frames, resolution_scale=0.6):
     """Create an animated GIF showing the SLAM map being built."""
     if output_path.exists():
-        print(f"'{output_path.name}' already exists. Skipping generation.")
-        return
+        print(f"   Deleting old GIF: {output_path.name}")
+        output_path.unlink()
 
     print("   Creating SLAM map buildup animation (this is slow)...")
     
@@ -103,7 +103,7 @@ def create_slam_buildup_animation(output_path: Path, slam: RGBDSlam, rgb_paths, 
 
     # Pre-process to find axis limits
     print("      Pre-processing to determine map boundaries...")
-    slam_temp = RGBDSlam(slam.K, detector_type='ORB')
+    slam_temp = RGBDSlam(slam_factory.K, detector_type='ORB')
     pre_poses = slam_temp.process_sequence(rgb_paths, depth_paths, max_frames=num_frames)
     all_landmarks = slam_temp.get_landmark_positions()
     
@@ -129,7 +129,7 @@ def create_slam_buildup_animation(output_path: Path, slam: RGBDSlam, rgb_paths, 
     end_plot = ax.scatter([], [], [], c='red', marker='o', s=100, edgecolors='black')
 
     # Reset SLAM for animation run
-    slam_anim = RGBDSlam(slam.K, detector_type='ORB')
+    slam_anim = RGBDSlam(slam_factory.K, detector_type='ORB')
     pbar = tqdm(total=num_frames, desc="      Animating frames")
 
     def update(frame_index):
@@ -192,21 +192,22 @@ create_loop_closure_diagram(output_dir / 'loop_closure_diagram.png')
 slam_for_anim = RGBDSlam(K, detector_type='ORB', max_features=500)
 create_slam_buildup_animation(
     output_dir / 'slam_buildup_animation.gif',
-    slam=slam_for_anim,
+    slam_factory=slam_for_anim,
     rgb_paths=rgb_paths,
     depth_paths=depth_paths,
-    num_frames=150
+    num_frames=50,
+    resolution_scale=0.3
 )
 print()
 
-# 2. Raw Sequence GIF (if it doesn't exist)
+# 2. Raw Sequence GIF
 print('2. Generating raw sequence GIF...')
 gif_path = output_dir / 'tum_sequence_raw.gif'
 if gif_path.exists():
     print('   ✅ GIF already exists, skipping generation')
 else:
     print('   Creating animation (this may take a moment)...')
-    num_frames = 200
+    num_frames = 80
     
     fig, ax = plt.subplots(figsize=(8, 6))
     fig.subplots_adjust(left=0, right=1, bottom=0, top=1)

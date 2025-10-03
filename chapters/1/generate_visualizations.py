@@ -259,7 +259,7 @@ def generate_gif_from_images(paths: list, output_path: Path, step: int = 5,
     print(f"   ✅ Saved raw sequence GIF: {output_path.name} ({len(frames)} frames)")
 
 raw_gif_path = output_dir / 'sequence_00_raw.gif'
-generate_gif_from_images(image_paths, raw_gif_path, step=5, max_frames=300, resize_width=800, duration_ms=80)
+generate_gif_from_images(image_paths, raw_gif_path, step=5, max_frames=75, resize_width=800, duration_ms=80)
 
 # 8. Animated GIFs: feature-annotated frames
 print('8. Creating animated GIF with detected features...')
@@ -295,7 +295,7 @@ def generate_feature_annotated_gif(paths: list, output_path: Path, step: int = 5
     print(f"   ✅ Saved feature-annotated GIF: {output_path.name} ({len(frames)} frames)")
 
 features_gif_path = output_dir / 'sequence_00_features.gif'
-generate_feature_annotated_gif(image_paths, features_gif_path, step=5, max_frames=300, resize_width=800,
+generate_feature_annotated_gif(image_paths, features_gif_path, step=5, max_frames=75, resize_width=800,
                                detector_type='SIFT', max_features=2000, draw_limit=300, duration_ms=80)
 
 # 9. NEW: Simple Analogy (Parallax) Visualization
