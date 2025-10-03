@@ -152,6 +152,7 @@ def main():
             K_left,
             left_image_paths[:N_FRAMES],
             gt_poses[:N_FRAMES],
+            detector_type='SIFT',
             max_features=2000
         )
         np.save(mono_poses_cache, mono_poses)

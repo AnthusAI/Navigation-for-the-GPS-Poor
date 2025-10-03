@@ -99,7 +99,7 @@ if poses_cache_file.exists():
     print('   ✅ Loaded poses from cache.')
 else:
     print(f'   Processing all {n_frames} frames (this will take a while)...')
-    vo = SimpleVisualOdometry(K, detector_type='ORB', max_features=2000)
+    vo = SimpleVisualOdometry(K, detector_type='SIFT', max_features=2000)
     estimated_poses = vo.process_image_sequence(
         image_paths,
         ground_truth_poses=gt_poses
@@ -296,7 +296,7 @@ def generate_feature_annotated_gif(paths: list, output_path: Path, step: int = 5
 
 features_gif_path = output_dir / 'sequence_00_features.gif'
 generate_feature_annotated_gif(image_paths, features_gif_path, step=5, max_frames=300, resize_width=800,
-                               detector_type='ORB', max_features=1000, draw_limit=300, duration_ms=80)
+                               detector_type='SIFT', max_features=2000, draw_limit=300, duration_ms=80)
 
 # 9. NEW: Simple Analogy (Parallax) Visualization
 print('9. Creating simple analogy illustration (parallax)...')

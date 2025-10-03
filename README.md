@@ -27,7 +27,7 @@ Solve the scale ambiguity problem from Chapter 1 using a second camera to percei
 - **Dataset**: KITTI Visual Odometry (Stereo Pairs)
 - **Key Skills**: Stereo correspondence, disparity, 3D triangulation, scaled trajectory
 - **Difficulty**: Intermediate
-- **Results**: 93.5% improvement in accuracy over monocular vision
+- **Results**: 75% improvement in accuracy over monocular vision
 
 ### [Chapter 3: SLAM Fundamentals](chapters/3/) *(Coming Soon)*
 Build a basic Simultaneous Localization and Mapping system.

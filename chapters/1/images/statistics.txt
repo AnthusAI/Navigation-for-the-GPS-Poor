@@ -7,14 +7,14 @@ Visual Odometry Statistics
 - **Max Features**: 2000
 
 ## Performance (First 1000 frames)
-- **Mean Position Error**: 277.067 m
-- **Root Mean Square (RMS) Error**: 348.822 m
-- **Mean Rotational Error (RPE)**: 3.527 degrees/frame
+- **Mean Position Error**: 52.429 m
+- **Root Mean Square (RMS) Error**: 89.262 m
+- **Mean Rotational Error (RPE)**: 2.984 degrees/frame
 
 ## Performance (Full Sequence - 4541 frames)
-- **Mean Position Error**: 489.920 m
-- **Root Mean Square (RMS) Error**: 551.448 m
-- **Mean Rotational Error (RPE)**: 1.573 degrees/frame
+- **Mean Position Error**: 197.613 m
+- **Root Mean Square (RMS) Error**: 232.734 m
+- **Mean Rotational Error (RPE)**: 0.754 degrees/frame
 
 ## Interpretation
 The first 1000 frames show good tracking with reasonable drift.
