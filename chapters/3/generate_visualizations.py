@@ -26,6 +26,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from pathlib import Path
 from tqdm import tqdm
 import matplotlib.patches as mpatches
+import random
 
 # Color theme (consistent with Chapter 1 & 2)
 COLOR_PURPLE = '#9400D3'
@@ -373,8 +374,8 @@ create_slam_buildup_animation(
     slam_factory=slam_factory,
     rgb_paths=rgb_paths,
     depth_paths=depth_paths,
-    num_frames=50,
-    resolution_scale=0.3
+    num_frames=25,  # Half from 50 to 25 (50% fewer frames)
+    resolution_scale=1.875  # 1200px width (640 * 1.875 = 1200)
 )
 
 # Create loop closure animation
@@ -385,8 +386,8 @@ create_slam_with_loop_closures_gif(
     slam_factory=slam_factory,
     rgb_paths=rgb_paths,
     depth_paths=depth_paths,
-    num_frames=100,
-    resolution_scale=0.6
+    num_frames=25,  # Quarter from 100 to 25 (75% fewer frames)
+    resolution_scale=1.875  # 1200px width (640 * 1.875 = 1200)
 )
 print()
 
@@ -395,9 +396,9 @@ print('2. Generating raw sequence GIF...')
 create_raw_sequence_gif(
     rgb_paths,
     output_dir / "tum_sequence_raw.gif",
-    num_frames=50,
-    frame_skip=8,
-    resolution_scale=1.0
+    num_frames=25,  # Half from 50 to 25 (50% fewer frames)
+    frame_skip=32,  # Double from 16 to 32 (50% fewer frames)
+    resolution_scale=1.875  # 1200px width (640 * 1.875 = 1200)
 )
 
 # 2b. Features Detection GIF
@@ -405,9 +406,9 @@ print('2b. Generating features detection GIF...')
 create_features_gif(
     rgb_paths,
     output_dir / "tum_features_detected.gif",
-    num_frames=50,
-    frame_skip=8,
-    resolution_scale=1.0,
+    num_frames=25,  # Half from 50 to 25 (50% fewer frames)
+    frame_skip=32,  # Double from 16 to 32 (50% fewer frames)
+    resolution_scale=1.875,  # 1200px width (640 * 1.875 = 1200)
     detector_type='ORB'
 )
 
@@ -447,14 +448,17 @@ else:
 # 4. Run SLAM and generate trajectory comparison
 print('4. Running SLAM system...')
 
-slam_cache_file = output_dir / 'slam_poses_200.npy'
-landmarks_cache_file = output_dir / 'slam_landmarks_200.npy'
-n_frames = 200
+n_frames = 596
+slam_cache_file = output_dir / f'slam_poses_{n_frames}.npy'
+landmarks_cache_file = output_dir / f'slam_landmarks_{n_frames}.npy'
+
 
 if slam_cache_file.exists() and landmarks_cache_file.exists():
     print(f'   Loading {n_frames} SLAM poses from cache...')
     slam_poses = np.load(slam_cache_file)
     landmarks = np.load(landmarks_cache_file)
+    # Mock stats when loading from cache, as loop closures aren't saved separately
+    stats = {'loop_closures': -1, 'loop_closures_list': []} 
     print('   ✅ Loaded SLAM results from cache')
 else:
     print(f'   Processing {n_frames} frames with SLAM (this will take a few minutes)...')
@@ -487,12 +491,21 @@ for i in range(len(slam_poses)):
     gt_poses_matched.append(gt_poses[idx])
 gt_poses_matched = np.array(gt_poses_matched)
 
+# Align ground truth with the first estimated pose
+first_gt_pose_inv = np.linalg.inv(gt_poses_matched[0])
+gt_poses_aligned = np.array([first_gt_pose_inv @ p for p in gt_poses_matched])
+
 # Plot SLAM trajectory comparison
+closures_to_plot = stats.get('loop_closures_list', [])
+if len(closures_to_plot) > 40:
+    closures_to_plot = random.sample(closures_to_plot, 40)
+
 plot_top_down_trajectory(
     slam_poses,
-    gt_poses_matched,
-    title=f'SLAM Trajectory (First {n_frames} frames)',
-    save_path=output_dir / f'slam_trajectory_{n_frames}.png'
+    gt_poses_aligned,
+    title=f'SLAM Trajectory ({n_frames} frames)',
+    save_path=output_dir / f'slam_trajectory_{n_frames}.png',
+    loop_closures=closures_to_plot
 )
 print(f'   ✅ Saved slam_trajectory_{n_frames}.png')
 

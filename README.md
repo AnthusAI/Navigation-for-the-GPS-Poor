@@ -108,6 +108,9 @@ python -m pytest tests/
 
 # Test modules
 python -c "from src.datasets import KITTIDatasetFetcher; print('✅ All modules working!')"
+
+# Validate all Jupyter notebooks for syntax errors
+python validate_notebooks.py
 ```
 
 ## Project Structure
@@ -118,6 +121,7 @@ python -c "from src.datasets import KITTIDatasetFetcher; print('✅ All modules 
 ├── LICENSE                     # MIT license
 ├── environment.yml             # Conda environment specification
 ├── setup_environment.sh        # Automatic setup script
+├── validate_notebooks.py       # Notebook syntax validator
 ├── pyproject.toml             # Python project configuration
 ├── requirements.txt           # Alternative pip requirements
 ├── chapters/                  # Individual tutorial chapters

@@ -9,14 +9,16 @@ if ! command -v conda &> /dev/null; then
     exit 1
 fi
 
-# Create conda environment
-echo "📦 Creating conda environment 'navigation-gps-poor'..."
-conda create -n navigation-gps-poor python=3.11 -y
+# Create conda environment from file
+echo "📦 Creating conda environment 'navigation-gps-poor' from environment.yml..."
+echo "This might take a few minutes."
+conda env create -f environment.yml
 
-# Activate environment and install dependencies
-echo "📚 Installing dependencies..."
-conda activate navigation-gps-poor
-conda install opencv numpy matplotlib scipy jupyter requests tqdm pillow pytest -y
+# Check if the environment was created successfully
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to create conda environment. Please check for errors above."
+    exit 1
+fi
 
 echo "✅ Environment setup complete!"
 echo ""

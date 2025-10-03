@@ -61,10 +61,10 @@ We'll use the **TUM RGB-D dataset**, which provides depth information directly f
 
 ### The Final Result: A Map and A Path
 
-Here's what our SLAM system produces after processing just 200 frames:
+Here's what our SLAM system produces after processing the full 596-frame sequence:
 
-![SLAM 3D Map](images/slam_map_3d_200.png)
-*The final SLAM system builds a map of over 180,000 3D landmarks (blue points) while tracking the camera's path (purple line). The system detected 19 loop closures, allowing it to correct accumulated errors. Start position is green, end position is red.*
+![SLAM 3D Map](images/slam_map_3d_596.png)
+*The final SLAM system builds a map of over 500,000 3D landmarks (blue points) while tracking the camera's path (purple line) over the full sequence. The system detected 382 loop closures, allowing it to correct accumulated errors. Start position is green, end position is red.*
 
 ---
 
@@ -106,12 +106,31 @@ The depth information is crucial for SLAM because it:
 - Provides instant 3D landmarks without triangulation
 - Works even with limited texture (like on blank walls)
 
-### SLAM Performance
+### SLAM Performance Over the Full Sequence
 
-Here's how our SLAM system tracks against ground truth over 200 frames:
+Here's how our SLAM system tracks against ground truth over the entire 596-frame sequence. The plot also visualizes every **loop closure** the system detected as a faint purple line connecting the two frames it recognized as the same location.
 
-![SLAM Trajectory](images/slam_trajectory_200.png)
-*Top-down view of the SLAM trajectory (blue) compared to ground truth (red dashed). The system maintains accurate tracking throughout the sequence, with loop closures helping to correct accumulated drift.*
+![SLAM Trajectory](images/slam_trajectory_596.png)
+*Top-down view of the SLAM trajectory (blue) compared to ground truth (black dashed) over 596 frames. The system detected 382 loop closures, a random sample of which are shown as faint purple lines.*
+
+#### What Do the Loop Closure Lines Mean?
+Each faint purple line represents an "aha!" moment for the SLAM system. It connects two points on the trajectory that the system has identified as being the same physical location in space.
+
+-   **One end of the line** is the camera's *current* position.
+-   **The other end of the line** is a *past* position on the trajectory where the camera recognized a landmark it had seen before.
+
+When the system recognizes a familiar place, it creates this "loop closure" constraint. This powerful piece of information allows it to go back and correct all the small errors that have accumulated in the trajectory between those two points, pulling the entire path into a more globally consistent alignment.
+
+#### A Note on Drift
+As you can see, the trajectory is not perfect. While it follows the general shape of the ground truth, there is a noticeable **accumulated drift**, especially towards the end of the sequence. This is completely expected, even for a SLAM system.
+
+Why does it still drift?
+-   **Imperfect Loop Closures**: While loop closures provide powerful corrections, they are not always perfect. Small errors in matching can lead to small errors in correction.
+-   **No Global Optimization**: Our simple SLAM system corrects its pose based on individual loop closures. More advanced systems perform **global bundle adjustment**, a complex optimization process that refines all landmark positions and camera poses simultaneously to create a more globally consistent map. This is computationally expensive but drastically reduces drift.
+-   **Sensor Noise**: Every measurement from the camera has a tiny amount of noise, which accumulates over time.
+
+Even with some drift, the result is a massive improvement over the pure visual odometry from Chapter 1, which would be hopelessly lost after just a hundred frames. Our SLAM system successfully builds a map and uses it to navigate for a much longer duration.
+
 
 ### Dataset Specifications
 

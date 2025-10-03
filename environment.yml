@@ -1,5 +1,6 @@
 name: navigation-gps-poor
 channels:
+  - pytorch
   - defaults
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
@@ -41,7 +42,9 @@ dependencies:
   - fonttools=4.59.2=py311h254cc4a_0
   - freetype=2.13.3=h47d26ad_0
   - fribidi=1.0.10=h1a28f6b_0
+  - gdal
   - gdk-pixbuf=2.42.10=h969f7ef_2
+  - geopandas
   - gettext=0.21.0=hbdbcc25_2
   - gflags=2.2.2=h313beb8_1
   - giflib=5.2.2=h80987f9_0
@@ -178,6 +181,7 @@ dependencies:
   - qtbase=6.7.3=h89abe44_4
   - qtconsole=5.7.0=py311hca03da5_0
   - qtpy=2.4.3=py311hca03da5_0
+  - rasterio
   - readline=8.3=h0b18652_0
   - referencing=0.30.2=py311hca03da5_0
   - requests=2.32.5=py311hca03da5_0
@@ -196,6 +200,8 @@ dependencies:
   - tesseract=5.2.0=h9e66425_3
   - tinycss2=1.4.0=py311hca03da5_0
   - tk=8.6.15=hcd8a7d5_0
+  - torchaudio
+  - torchvision
   - tornado=6.5.1=py311h80987f9_0
   - tqdm=4.67.1=py311hb6e6a13_0
   - traitlets=5.14.3=py311hca03da5_0

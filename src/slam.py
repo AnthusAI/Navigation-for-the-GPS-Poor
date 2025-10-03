@@ -302,7 +302,9 @@ class RGBDSlam:
         T_relative[:3, 3] = t
         
         # Update global pose
-        self.current_pose = self.current_pose @ T_relative
+        # This was the bug: The relative transform must be inverted before
+        # being applied to the global pose.
+        self.current_pose = self.current_pose @ np.linalg.inv(T_relative)
         self.poses.append(self.current_pose.copy())
         
         # Create new landmarks from current frame
@@ -369,6 +371,7 @@ class RGBDSlam:
             'landmarks_created': self.total_landmarks_created,
             'total_matches': self.total_matches,
             'loop_closures': len(self.loop_closures),
+            'loop_closures_list': self.loop_closures,
             'avg_matches_per_frame': self.total_matches / max(self.frame_count, 1)
         }
 

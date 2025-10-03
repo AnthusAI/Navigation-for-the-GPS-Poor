@@ -177,41 +177,51 @@ def plot_trajectory(poses: np.ndarray, ground_truth: Optional[np.ndarray] = None
         plt.show()
 
 
-def plot_top_down_trajectory(estimated_poses: np.ndarray,
-                           ground_truth_poses: np.ndarray,
-                           title: str = "Top-Down Trajectory View",
-                           save_path: Optional[Path] = None,
-                           color: str = 'b',
-                           label: str = 'Estimated'):
+def plot_top_down_trajectory(poses: np.ndarray, gt_poses: np.ndarray, 
+                             title: str, save_path: Optional[str] = None,
+                             loop_closures: Optional[List[Tuple[int, int]]] = None):
     """
-    Plots the top-down (X-Z plane) trajectory.
+    Plot top-down (X-Z) trajectory comparison.
+
+    Args:
+        poses: Array of estimated poses (N, 4, 4)
+        gt_poses: Array of ground truth poses (N, 4, 4)
+        title: Plot title
+        save_path: Path to save the plot. If None, shows the plot.
+        loop_closures: List of (frame_i, frame_j) tuples for loop closures
     """
-    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(12, 8))
 
-    # Extract positions (X and Z coordinates for top-down view)
-    est_positions = estimated_poses[:, :3, 3]
-
-    # Plot trajectories (X vs Z, which is the ground plane)
-    ax.plot(est_positions[:, 0], est_positions[:, 2], color=color, label=label)
+    # Plot estimated trajectory
+    ax.plot(poses[:, 0, 3], poses[:, 2, 3], 'b-', label='Estimated')
     
-    if "Estimated" in label: # Only plot start/end/GT for the main estimate
-        # Plot start and end points
-        ax.scatter(est_positions[0, 0], est_positions[0, 2],
-               c='green', s=100, label='Start')
-        ax.scatter(est_positions[-1, 0], est_positions[-1, 2],
-               c='red', s=100, label='End')
+    # Plot start and end points
+    ax.scatter(poses[0, 0, 3], poses[0, 2, 3],
+            c='green', s=100, label='Start')
+    ax.scatter(poses[-1, 0, 3], poses[-1, 2, 3],
+            c='red', s=100, label='End')
 
-        # Plot ground truth
-        gt_x = ground_truth_poses[:, 0, 3]
-        gt_z = ground_truth_poses[:, 2, 3]
-        ax.plot(gt_x, gt_z, '--', color='k', label='Ground Truth')
+    # Plot ground truth
+    ax.plot(gt_poses[:, 0, 3], gt_poses[:, 2, 3], '--', color='black', label='Ground Truth')
 
-    ax.set_xlabel('X (m)')
-    ax.set_ylabel('Z (m) - Forward')
-    ax.set_title(title)
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.axis('equal')
+    # Plot loop closures
+    if loop_closures:
+        # Plot a dummy line for the legend
+        ax.plot([], [], color='purple', alpha=0.5, linestyle=':', linewidth=1.5, label='Loop Closures')
+        for i, j in loop_closures:
+            if i < len(poses) and j < len(poses):
+                pos_i_xz = poses[i, [0, 2], 3]
+                pos_j_xz = poses[j, [0, 2], 3]
+                ax.plot([pos_i_xz[0], pos_j_xz[0]],
+                        [pos_i_xz[1], pos_j_xz[1]],
+                        color='purple', alpha=0.15, linestyle=':', linewidth=1)
+
+    ax.set_xlabel('X (m)', fontsize=12)
+    ax.set_ylabel('Z (m) - Forward', fontsize=12)
+    ax.set_title(title, fontsize=16)
+    ax.legend(fontsize=12)
+    ax.grid(True, which='both', linestyle='--', linewidth=0.5, color='gray', alpha=0.5)
+    ax.set_aspect('equal', 'box')
 
     plt.tight_layout()
     
