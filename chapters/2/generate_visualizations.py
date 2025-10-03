@@ -109,13 +109,17 @@ def main():
     stereo = cv2.StereoBM_create(numDisparities=16*6, blockSize=21)
     disparity = stereo.compute(img_left_gray, img_right_gray)
     
-    plt.figure(figsize=(12, 5))
-    plt.imshow(disparity, 'plasma')
-    plt.title('Disparity Map (Closer = Brighter)')
-    plt.colorbar(label='Disparity (pixels)')
-    plt.axis('off')
+    fig, ax = plt.subplots(figsize=(16, 6))
+    im = ax.imshow(disparity, 'plasma')
+    ax.set_title('Disparity Map (Closer = Brighter)', fontsize=14)
+    ax.axis('off')
+    
+    # Add colorbar with custom size
+    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, shrink=0.6)
+    cbar.set_label('Disparity (pixels)', rotation=270, labelpad=20)
+    
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / 'disparity_visualization.png', dpi=150)
+    plt.savefig(OUTPUT_DIR / 'disparity_visualization.png', dpi=150, bbox_inches='tight')
     print("   ✅ Saved: disparity_visualization.png")
 
 

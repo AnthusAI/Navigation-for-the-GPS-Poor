@@ -18,9 +18,14 @@ Learn the fundamentals of visual odometry using feature matching and camera pose
 
 ### [Chapter 2: Stereo Visual Odometry](chapters/2/)
 Solve the scale ambiguity problem from Chapter 1 using a second camera to perceive depth.
+
+![Disparity Map](chapters/2/images/disparity_visualization.png)
+*Disparity map showing depth perception - brighter areas are closer to the camera, darker areas are farther away*
+
 - **Dataset**: KITTI Visual Odometry (Stereo Pairs)
 - **Key Skills**: Stereo correspondence, disparity, 3D triangulation, scaled trajectory
 - **Difficulty**: Intermediate
+- **Results**: 93% improvement in accuracy over monocular vision
 
 ### [Chapter 3: SLAM Fundamentals](chapters/3/) *(Coming Soon)*
 Build a basic Simultaneous Localization and Mapping system.
