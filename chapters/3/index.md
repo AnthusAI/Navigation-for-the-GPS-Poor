@@ -18,19 +18,30 @@ First, the device sees the world through its camera, just like our visual odomet
 ![TUM Sequence Raw](images/tum_sequence_raw.gif)
 *A handheld camera moving through an office. This is the only information the robot gets.*
 
-#### 2. Build a map of "landmarks" as you go
-Instead of just tracking features between two frames, a SLAM system builds a persistent 3D map of all the unique landmarks it sees. As the camera moves, it constantly adds new landmarks, gradually building up a picture of the world.
+#### 2. Detect features to create landmarks
+Just like in Chapter 1, we start with feature detection—finding distinctive corners, edges, and textures that we can track. But instead of discarding these features after each frame, SLAM remembers them as persistent 3D **landmarks** in a map.
+
+![TUM Features Detected](images/tum_features_detected.gif)
+*The same feature detection we used in Chapter 1 (ORB features shown in green), but now we use the depth information to convert each 2D feature into a 3D landmark that persists in our map.*
+
+#### 3. Build a map of landmarks as you go
+As the camera moves, the SLAM system constantly detects new features and adds them as 3D landmarks to a persistent map, gradually building up a picture of the world.
 
 ![SLAM Buildup Animation](images/slam_buildup_animation.gif)
 *The SLAM system builds a map of thousands of 3D landmarks (blue points) while simultaneously tracking the camera's path (purple line). Each new frame adds more points to the map.*
 
-#### 3. Recognize familiar places to correct errors
+#### 4. Recognize familiar places to correct errors
 This is the magic of SLAM. When the robot sees a landmark it has seen before, it creates a **loop closure**. This is an "aha!" moment where the robot realizes, "I've been here before!"
 
 This single observation allows the system to correct the *entire* path, adjusting all the previous poses to be consistent. It snaps the trajectory back into place, eliminating accumulated drift.
 
 ![Loop Closure Diagram](images/loop_closure_diagram.png)
 *When the robot at `Pose 95` recognizes a landmark it first saw at `Pose 5`, it creates a powerful constraint. The system then optimizes the entire path, pulling the drifting odometry estimate (gray) into a globally consistent `Corrected Trajectory` (green).*
+
+Watch it happen in real-time as the SLAM system processes the video and detects when it returns to familiar places:
+
+![SLAM Loop Closures](images/tum_slam_loop_closures.gif)
+*The same camera view, but now running through our SLAM system. Watch for the "🔄 LOOP CLOSURE DETECTED!" banner that appears when the system recognizes it has returned to a previously seen location. The statistics show the growing map and accumulating loop closures.*
 
 ### The Key Difference: Memory
 

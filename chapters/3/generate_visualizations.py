@@ -95,7 +95,7 @@ def create_raw_sequence_gif(rgb_paths: list, output_path: Path, num_frames: int,
         print(f"   Deleting old GIF: {output_path.name}")
         output_path.unlink()
         
-    print(f"   Generating raw sequence GIF with new settings...")
+    print(f"   Generating raw sequence GIF...")
     frames_to_process = rgb_paths[0 : num_frames * frame_skip : frame_skip]
     
     first_img = cv2.imread(frames_to_process[0])
@@ -107,7 +107,7 @@ def create_raw_sequence_gif(rgb_paths: list, output_path: Path, num_frames: int,
     ax.axis('off')
     im = ax.imshow(np.zeros((h_new, w_new, 3), dtype=np.uint8))
     
-    pbar = tqdm(total=len(frames_to_process), desc="      Raw GIF Frames")
+    pbar = tqdm(total=len(frames_to_process), desc="      Raw frames")
 
     def update(frame_index):
         img_path = frames_to_process[frame_index]
@@ -118,7 +118,148 @@ def create_raw_sequence_gif(rgb_paths: list, output_path: Path, num_frames: int,
         return [im]
     
     ani = FuncAnimation(fig, update, frames=len(frames_to_process), blit=True)
-    ani.save(output_path, writer=PillowWriter(fps=3))  # Very low FPS to stretch time with frame skipping
+    ani.save(output_path, writer=PillowWriter(fps=3))
+    pbar.close()
+    plt.close(fig)
+    print(f"   ✅ Saved '{output_path.name}'")
+
+
+def create_features_gif(rgb_paths: list, output_path: Path, num_frames: int, frame_skip: int, resolution_scale: float, detector_type: str = 'ORB'):
+    """Create a GIF showing detected features on TUM RGB frames."""
+    from src.feature_matching import FeatureMatcher
+    
+    if output_path.exists():
+        print(f"   Deleting old GIF: {output_path.name}")
+        output_path.unlink()
+        
+    print(f"   Generating features GIF...")
+    frames_to_process = rgb_paths[0 : num_frames * frame_skip : frame_skip]
+    
+    # Initialize feature detector
+    matcher = FeatureMatcher(detector_type=detector_type, max_features=1000)
+    
+    first_img = cv2.imread(frames_to_process[0])
+    h, w, _ = first_img.shape
+    w_new, h_new = int(w * resolution_scale), int(h * resolution_scale)
+    
+    fig, ax = plt.subplots(figsize=(w_new / 100, h_new / 100))
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    ax.axis('off')
+    im = ax.imshow(np.zeros((h_new, w_new, 3), dtype=np.uint8))
+    
+    pbar = tqdm(total=len(frames_to_process), desc="      Feature frames")
+
+    def update(frame_index):
+        img_path = frames_to_process[frame_index]
+        img = cv2.imread(img_path)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        
+        # Detect features
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        kp, _ = matcher.get_keypoints_and_descriptors(gray)
+        
+        # Draw features on image (bright green)
+        img_with_features = img_rgb.copy()
+        for k in kp:
+            pt = (int(k.pt[0]), int(k.pt[1]))
+            cv2.circle(img_with_features, pt, 3, (0, 255, 0), -1)
+        
+        img_with_features = cv2.resize(img_with_features, (w_new, h_new))
+        im.set_array(img_with_features)
+        pbar.update(1)
+        return [im]
+    
+    ani = FuncAnimation(fig, update, frames=len(frames_to_process), blit=True)
+    ani.save(output_path, writer=PillowWriter(fps=3))
+    pbar.close()
+    plt.close(fig)
+    print(f"   ✅ Saved '{output_path.name}'")
+
+
+def create_slam_with_loop_closures_gif(output_path: Path, slam_factory, rgb_paths, depth_paths, num_frames, resolution_scale=0.6):
+    """Create an animated GIF showing SLAM with loop closure annotations and detected features on the camera view."""
+    from src.feature_matching import FeatureMatcher
+    
+    if output_path.exists():
+        print(f"   Deleting old GIF: {output_path.name}")
+        output_path.unlink()
+        
+    print(f"   Generating SLAM with loop closures GIF...")
+    frames_to_process = list(zip(rgb_paths[:num_frames], depth_paths[:num_frames]))
+    
+    # Initialize SLAM and feature detector
+    slam = slam_factory()
+    matcher = FeatureMatcher(detector_type='ORB', max_features=1000)
+    
+    first_img = cv2.imread(frames_to_process[0][0])
+    h, w, _ = first_img.shape
+    w_new, h_new = int(w * resolution_scale), int(h * resolution_scale)
+    
+    fig, ax = plt.subplots(figsize=(w_new / 100, h_new / 100))
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)  # Remove all padding
+    ax.axis('off')
+    im = ax.imshow(np.zeros((h_new, w_new, 3), dtype=np.uint8))
+    
+    # Text annotations
+    loop_text = ax.text(0.5, 0.95, '', transform=ax.transAxes, 
+                       fontsize=14, color='white', weight='bold',
+                       ha='center', va='top',
+                       bbox=dict(boxstyle='round', facecolor='purple', alpha=0.9))
+    
+    stats_text = ax.text(0.02, 0.02, '', transform=ax.transAxes,
+                        fontsize=10, color='white', weight='normal',
+                        ha='left', va='bottom',
+                        bbox=dict(boxstyle='round', facecolor='black', alpha=0.7))
+    
+    pbar = tqdm(total=len(frames_to_process), desc="      Loop closure frames")
+    last_loop_closure_frame = -10
+
+    def update(frame_index):
+        nonlocal last_loop_closure_frame
+        
+        rgb_path, depth_path = frames_to_process[frame_index]
+        rgb = cv2.imread(rgb_path)
+        depth = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED)
+        
+        # Track loop closures
+        prev_loop_count = len(slam.loop_closures)
+        slam.process_frame(rgb, depth)
+        new_loop_count = len(slam.loop_closures)
+        
+        # Prepare image with features
+        img_rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+        
+        # Detect and draw features (bright green)
+        gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+        kp, _ = matcher.get_keypoints_and_descriptors(gray)
+        for k in kp:
+            pt = (int(k.pt[0]), int(k.pt[1]))
+            cv2.circle(img_rgb, pt, 3, (0, 255, 0), -1)  # Bright green
+        
+        img_display = cv2.resize(img_rgb, (w_new, h_new))
+        
+        # Check if loop closure detected
+        if new_loop_count > prev_loop_count:
+            last_loop_closure_frame = frame_index
+            loop_text.set_text('LOOP CLOSURE DETECTED!')
+        elif frame_index - last_loop_closure_frame < 10:
+            loop_text.set_text('LOOP CLOSURE DETECTED!')
+        else:
+            loop_text.set_text('')
+        
+        # Stats
+        stats = f'Frame: {frame_index+1}/{len(frames_to_process)}\n'
+        stats += f'Features: {len(kp)}\n'
+        stats += f'Landmarks: {len(slam.landmarks):,}\n'
+        stats += f'Loop Closures: {len(slam.loop_closures)}'
+        stats_text.set_text(stats)
+        
+        im.set_array(img_display)
+        pbar.update(1)
+        return [im, loop_text, stats_text]
+    
+    ani = FuncAnimation(fig, update, frames=len(frames_to_process), blit=False)
+    ani.save(output_path, writer=PillowWriter(fps=10))  # Increased FPS for smoother playback
     pbar.close()
     plt.close(fig)
     print(f"   ✅ Saved '{output_path.name}'")
@@ -138,7 +279,7 @@ def create_slam_buildup_animation(output_path: Path, slam_factory, rgb_paths, de
 
     # Pre-process to find axis limits
     print("      Pre-processing to determine map boundaries...")
-    slam_temp = RGBDSlam(slam_factory.K, detector_type='ORB')
+    slam_temp = slam_factory()
     pre_poses = slam_temp.process_sequence(rgb_paths, depth_paths, max_frames=num_frames)
     all_landmarks = slam_temp.get_landmark_positions()
     
@@ -164,7 +305,7 @@ def create_slam_buildup_animation(output_path: Path, slam_factory, rgb_paths, de
     end_plot = ax.scatter([], [], [], c='red', marker='o', s=100, edgecolors='black')
 
     # Reset SLAM for animation run
-    slam_anim = RGBDSlam(slam_factory.K, detector_type='ORB')
+    slam_anim = slam_factory()
     pbar = tqdm(total=num_frames, desc="      Animating frames")
 
     def update(frame_index):
@@ -223,15 +364,29 @@ print()
 print('1. Generating narrative visualizations...')
 create_loop_closure_diagram(output_dir / 'loop_closure_diagram.png')
 
-# Create a slimmed down SLAM instance for the animation
-slam_for_anim = RGBDSlam(K, detector_type='ORB', max_features=500)
+# Create a factory function for SLAM instances
+slam_factory = lambda: RGBDSlam(K, detector_type='ORB', max_features=500)
+
+# Create SLAM buildup animation
 create_slam_buildup_animation(
     output_dir / 'slam_buildup_animation.gif',
-    slam_factory=slam_for_anim,
+    slam_factory=slam_factory,
     rgb_paths=rgb_paths,
     depth_paths=depth_paths,
     num_frames=50,
     resolution_scale=0.3
+)
+
+# Create loop closure animation
+print()
+print('1b. Generating SLAM with loop closures GIF...')
+create_slam_with_loop_closures_gif(
+    output_dir / "tum_slam_loop_closures.gif",
+    slam_factory=slam_factory,
+    rgb_paths=rgb_paths,
+    depth_paths=depth_paths,
+    num_frames=100,
+    resolution_scale=0.6
 )
 print()
 
@@ -243,6 +398,17 @@ create_raw_sequence_gif(
     num_frames=50,
     frame_skip=8,
     resolution_scale=1.0
+)
+
+# 2b. Features Detection GIF
+print('2b. Generating features detection GIF...')
+create_features_gif(
+    rgb_paths,
+    output_dir / "tum_features_detected.gif",
+    num_frames=50,
+    frame_skip=8,
+    resolution_scale=1.0,
+    detector_type='ORB'
 )
 
 # 3. Sample RGB-D pair (if it doesn't exist)

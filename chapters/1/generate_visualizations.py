@@ -26,11 +26,11 @@ from pathlib import Path
 from PIL import Image
 import matplotlib.patches as mpatches
 
-# Miami color theme -> Updated to Purple/Blue
-COLOR_PURPLE = '#9400D3' # Bright Purple
+# Consistent color theme across chapters
+COLOR_GREEN = '#00FF00'  # Bright Green for features (consistent with Ch3)
 COLOR_BLUE = '#007BFF'   # A more visible Blue
 COLOR_BLUE_BGR = (255, 123, 0)
-COLOR_PURPLE_BGR = (211, 0, 148)
+COLOR_GREEN_BGR = (0, 255, 0)  # Bright green in BGR
 
 
 # Create output directory
@@ -70,8 +70,8 @@ kp, desc = matcher.get_keypoints_and_descriptors(img_gray)
 img_with_keypoints = cv2.imread(image_paths[0])
 for i in range(min(len(kp), 200)):  # Show first 200 features
     pt = (int(kp[i].pt[0]), int(kp[i].pt[1]))
-    cv2.circle(img_with_keypoints, pt, 3, COLOR_PURPLE_BGR, -1)
-    cv2.circle(img_with_keypoints, pt, 6, COLOR_PURPLE_BGR, 1)
+    cv2.circle(img_with_keypoints, pt, 3, COLOR_GREEN_BGR, -1)
+    cv2.circle(img_with_keypoints, pt, 6, COLOR_GREEN_BGR, 1)
 
 cv2.imwrite(str(output_dir / 'features_detected.png'), img_with_keypoints)
 print(f'   ✅ Detected {len(kp)} features, visualized 200')
@@ -159,7 +159,7 @@ errors_full = compute_trajectory_error(estimated_poses, gt_poses)
 
 # Plot error analysis for full sequence
 fig, axes = plt.subplots(2, 1, figsize=(12, 8))
-axes[0].plot(errors_full['absolute_position_error'], color=COLOR_PURPLE)
+axes[0].plot(errors_full['absolute_position_error'], color=COLOR_GREEN)
 axes[0].set_title('Translation Error Over Time (Full Sequence)')
 axes[0].set_ylabel('Position Error (m)')
 axes[0].grid(True)
@@ -174,7 +174,7 @@ plt.savefig(output_dir / 'error_analysis_full.png', dpi=150, bbox_inches='tight'
 
 # Plot error analysis for first 1000 frames (cleaner, more readable)
 fig, axes = plt.subplots(2, 1, figsize=(12, 8))
-axes[0].plot(errors_1k['absolute_position_error'], color=COLOR_PURPLE)
+axes[0].plot(errors_1k['absolute_position_error'], color=COLOR_GREEN)
 axes[0].set_title(f'Translation Error Over Time (First {n_frames_1k} frames)')
 axes[0].set_ylabel('Position Error (m)')
 axes[0].grid(True)
@@ -282,7 +282,7 @@ def generate_feature_annotated_gif(paths: list, output_path: Path, step: int = 5
         draw_kp = kp[:draw_limit] if kp is not None else []
         color_bgr = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
         annotated = cv2.drawKeypoints(color_bgr, draw_kp, None,
-                                      color=COLOR_PURPLE_BGR, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+                                      color=COLOR_GREEN_BGR, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
         rgb = _resize_rgb(rgb, resize_width)
         frames.append(Image.fromarray(rgb))
@@ -315,14 +315,14 @@ def generate_parallax_analogy(output_path: Path):
     # Car positions
     car1_pos = (2, 0)
     car2_pos = (8, 0)
-    ax_top.add_patch(plt.Rectangle((car1_pos[0]-0.5, -0.25), 1, 0.5, facecolor=COLOR_PURPLE, alpha=0.6, edgecolor='black', label='Car Position A'))
+    ax_top.add_patch(plt.Rectangle((car1_pos[0]-0.5, -0.25), 1, 0.5, facecolor=COLOR_GREEN, alpha=0.6, edgecolor='black', label='Car Position A'))
     ax_top.text(car1_pos[0], car1_pos[1] - 0.5, 'A', ha='center', fontsize=14, fontweight='bold')
     ax_top.add_patch(plt.Rectangle((car2_pos[0]-0.5, -0.25), 1, 0.5, facecolor=COLOR_BLUE, alpha=0.6, edgecolor='black', label='Car Position B'))
     ax_top.text(car2_pos[0], car2_pos[1] - 0.5, 'B', ha='center', fontsize=14, fontweight='bold')
     ax_top.arrow(3, 0, 4, 0, head_width=0.2, head_length=0.4, fc='black', ec='black')
     # Lines of sight
     building_center = (5, 2.5)
-    ax_top.plot([car1_pos[0], building_center[0]], [car1_pos[1], building_center[1]], color=COLOR_PURPLE, linestyle='--', alpha=0.7)
+    ax_top.plot([car1_pos[0], building_center[0]], [car1_pos[1], building_center[1]], color=COLOR_GREEN, linestyle='--', alpha=0.7)
     ax_top.plot([car2_pos[0], building_center[0]], [car2_pos[1], building_center[1]], color=COLOR_BLUE, linestyle='--', alpha=0.7)
     ax_top.set_xlim(0, 10)
     ax_top.set_ylim(-1, 4)
@@ -409,7 +409,7 @@ def generate_calibration_analogy(output_path: Path):
     
     arrow = mpatches.FancyArrowPatch((0.45, 0.55), (0.55, 0.55),
                                      mutation_scale=40, transform=fig.transFigure,
-                                     color=COLOR_PURPLE)
+                                     color=COLOR_GREEN)
     fig.patches.append(arrow)
 
     fig.suptitle("Camera Calibration Corrects Lens Distortion", fontsize=20, y=0.95)
@@ -456,7 +456,7 @@ def generate_triangulation_diagram(output_path: Path):
     pose2[:3, 3] = cam_b_pos
 
     # Draw camera frustums and projections
-    for pose, color, label in [(pose1, COLOR_PURPLE, 'A'), (pose2, COLOR_BLUE, 'B')]:
+    for pose, color, label in [(pose1, COLOR_GREEN, 'A'), (pose2, COLOR_BLUE, 'B')]:
         center = pose[:3, 3]
         R = pose[:3, :3]
         
@@ -508,7 +508,7 @@ def generate_intrinsics_diagram(output_path: Path):
     
     # 3D point
     pt_3d = np.array([2, 1, 5])
-    ax1.scatter(pt_3d[0], pt_3d[1], pt_3d[2], s=100, c=COLOR_PURPLE, label='3D Point')
+    ax1.scatter(pt_3d[0], pt_3d[1], pt_3d[2], s=100, c=COLOR_GREEN, label='3D Point')
     
     # Camera center and image plane
     f = 1  # Focal length
@@ -522,7 +522,7 @@ def generate_intrinsics_diagram(output_path: Path):
     ax1.scatter(pt_2d[0], pt_2d[1], f, s=80, c=COLOR_BLUE, marker='x', label='Projected Point')
     
     # Rays
-    ax1.plot([0, pt_3d[0]], [0, pt_3d[1]], [0, pt_3d[2]], '--', color=COLOR_PURPLE, alpha=0.8)
+    ax1.plot([0, pt_3d[0]], [0, pt_3d[1]], [0, pt_3d[2]], '--', color=COLOR_GREEN, alpha=0.8)
     ax1.plot([0, pt_2d[0]], [0, pt_2d[1]], [0, f], color=COLOR_BLUE)
     
     # Axes and labels
@@ -547,7 +547,7 @@ def generate_intrinsics_diagram(output_path: Path):
     ax2.xaxis.tick_top(); ax2.xaxis.set_label_position('top')
     
     # Principal point
-    ax2.plot(cx, cy, '+', markersize=15, color=COLOR_PURPLE, label=f'Principal Point (cx, cy) = ({cx}, {cy})')
+    ax2.plot(cx, cy, '+', markersize=15, color=COLOR_GREEN, label=f'Principal Point (cx, cy) = ({cx}, {cy})')
     
     # Projected point in pixels
     fx, fy = 500, 500 # Focal length in pixels
