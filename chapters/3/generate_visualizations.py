@@ -89,6 +89,41 @@ def create_loop_closure_diagram(output_path: Path):
     print(f"   ✅ Saved '{output_path.name}'")
 
 
+def create_raw_sequence_gif(rgb_paths: list, output_path: Path, num_frames: int, frame_skip: int, resolution_scale: float):
+    """Create a GIF from the raw RGB frames of a TUM sequence using Matplotlib."""
+    if output_path.exists():
+        print(f"   Deleting old GIF: {output_path.name}")
+        output_path.unlink()
+        
+    print(f"   Generating raw sequence GIF with new settings...")
+    frames_to_process = rgb_paths[0 : num_frames * frame_skip : frame_skip]
+    
+    first_img = cv2.imread(frames_to_process[0])
+    h, w, _ = first_img.shape
+    w_new, h_new = int(w * resolution_scale), int(h * resolution_scale)
+    
+    fig, ax = plt.subplots(figsize=(w_new / 100, h_new / 100))
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
+    ax.axis('off')
+    im = ax.imshow(np.zeros((h_new, w_new, 3), dtype=np.uint8))
+    
+    pbar = tqdm(total=len(frames_to_process), desc="      Raw GIF Frames")
+
+    def update(frame_index):
+        img_path = frames_to_process[frame_index]
+        img_data = cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
+        img_data = cv2.resize(img_data, (w_new, h_new))
+        im.set_array(img_data)
+        pbar.update(1)
+        return [im]
+    
+    ani = FuncAnimation(fig, update, frames=len(frames_to_process), blit=True)
+    ani.save(output_path, writer=PillowWriter(fps=3))  # Very low FPS to stretch time with frame skipping
+    pbar.close()
+    plt.close(fig)
+    print(f"   ✅ Saved '{output_path.name}'")
+
+
 def create_slam_buildup_animation(output_path: Path, slam_factory, rgb_paths, depth_paths, num_frames, resolution_scale=0.6):
     """Create an animated GIF showing the SLAM map being built."""
     if output_path.exists():
@@ -202,37 +237,13 @@ print()
 
 # 2. Raw Sequence GIF
 print('2. Generating raw sequence GIF...')
-gif_path = output_dir / 'tum_sequence_raw.gif'
-if gif_path.exists():
-    print('   ✅ GIF already exists, skipping generation')
-else:
-    print('   Creating animation (this may take a moment)...')
-    num_frames = 80
-    
-    fig, ax = plt.subplots(figsize=(8, 6))
-    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
-    ax.axis('off')
-    
-    first_img = cv2.imread(rgb_paths[0])
-    first_img = cv2.cvtColor(first_img, cv2.COLOR_BGR2RGB)
-    im = ax.imshow(first_img)
-    
-    pbar = tqdm(total=num_frames, desc="   Processing frames")
-    
-    def update(frame_index):
-        img = cv2.imread(rgb_paths[frame_index])
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        im.set_array(img)
-        pbar.update(1)
-        return [im]
-    
-    ani = FuncAnimation(fig, update, frames=num_frames, blit=True)
-    writer = PillowWriter(fps=20)
-    ani.save(gif_path, writer=writer)
-    
-    pbar.close()
-    plt.close(fig)
-    print('   ✅ Saved tum_sequence_raw.gif')
+create_raw_sequence_gif(
+    rgb_paths,
+    output_dir / "tum_sequence_raw.gif",
+    num_frames=50,
+    frame_skip=8,
+    resolution_scale=1.0
+)
 
 # 3. Sample RGB-D pair (if it doesn't exist)
 print('3. Creating sample RGB-D pair visualization...')
