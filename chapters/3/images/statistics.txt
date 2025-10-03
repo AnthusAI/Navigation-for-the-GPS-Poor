@@ -1,0 +1,15 @@
+Chapter 3: SLAM Performance Statistics
+==================================================
+
+Dataset: TUM RGB-D fr1/desk
+Frames processed: 200
+Landmarks in map: 181,605
+
+Trajectory Errors:
+  Mean position error: 2.077 m
+  RMS position error: 2.099 m
+  Mean RPE translation: 0.032 m
+  Mean RPE rotation: 2.893°
+
+Source: TUM RGB-D Benchmark
+   https://cvg.cit.tum.de/data/datasets/rgbd-dataset

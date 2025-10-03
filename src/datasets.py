@@ -5,8 +5,9 @@ Dataset fetching utilities for various computer vision datasets.
 import os
 import requests
 import zipfile
+import tarfile
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from tqdm import tqdm
 import numpy as np
 
@@ -218,6 +219,282 @@ class KITTIDatasetFetcher:
         return [str(p) for p in img_paths]
 
 
+class TUMDatasetFetcher:
+    """Utility class for downloading and managing TUM RGB-D dataset."""
+    
+    BASE_URL = "https://cvg.cit.tum.de/rgbd/dataset/freiburg"
+    
+    # Available sequences organized by location and type
+    SEQUENCES = {
+        # Freiburg 1 (fr1) - Office environment, lower resolution
+        "fr1/desk": "freiburg1_desk",
+        "fr1/desk2": "freiburg1_desk2",
+        "fr1/room": "freiburg1_room",
+        "fr1/plant": "freiburg1_plant",
+        "fr1/teddy": "freiburg1_teddy",
+        
+        # Freiburg 2 (fr2) - Office environment, higher resolution
+        "fr2/desk": "freiburg2_desk",
+        "fr2/large_no_loop": "freiburg2_large_no_loop",
+        "fr2/large_with_loop": "freiburg2_large_with_loop",
+        
+        # Freiburg 3 (fr3) - Office environment with texture
+        "fr3/long_office_household": "freiburg3_long_office_household",
+        "fr3/nostructure_texture_near": "freiburg3_nostructure_texture_near",
+    }
+    
+    def __init__(self, data_dir: str = "data"):
+        """
+        Initialize TUM dataset fetcher.
+        
+        Args:
+            data_dir: Directory to store downloaded data
+        """
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(exist_ok=True)
+        
+    def download_sequence(self, sequence: str = "fr1/desk") -> Path:
+        """
+        Download a specific TUM RGB-D sequence.
+        
+        Args:
+            sequence: Sequence identifier (e.g., 'fr1/desk', 'fr2/large_with_loop')
+            
+        Returns:
+            Path to the downloaded sequence directory
+        """
+        if sequence not in self.SEQUENCES:
+            available = ", ".join(self.SEQUENCES.keys())
+            raise ValueError(f"Unknown sequence '{sequence}'. Available: {available}")
+        
+        seq_name = self.SEQUENCES[sequence]
+        # TUM archives extract to rgbd_dataset_<name>
+        full_seq_name = f"rgbd_dataset_{seq_name}"
+        seq_dir = self.data_dir / "tum" / full_seq_name
+        seq_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Check if data is already extracted
+        rgb_dir = seq_dir / "rgb"
+        if rgb_dir.exists() and len(list(rgb_dir.glob("*.png"))) > 0:
+            print(f"Dataset for sequence '{sequence}' already exists. Skipping download.")
+            return seq_dir
+        
+        # Download and extract the sequence
+        self._download_and_extract(sequence, seq_name, seq_dir)
+        
+        return seq_dir
+    
+    def _download_and_extract(self, sequence: str, seq_name: str, seq_dir: Path) -> None:
+        """Download and extract TUM sequence."""
+        # Construct URL - TUM sequences are in tar.gz format
+        # Format: https://cvg.cit.tum.de/rgbd/dataset/freiburg1/rgbd_dataset_freiburg1_desk.tgz
+        location = sequence.split('/')[0]  # e.g., 'fr1'
+        url = f"{self.BASE_URL}{location[2]}/rgbd_dataset_{seq_name}.tgz"
+        
+        tgz_path = seq_dir.parent / f"{seq_name}.tgz"
+        
+        print(f"Downloading TUM sequence {sequence}...")
+        self._download_file(url, tgz_path, f"Downloading {seq_name}")
+        
+        # Extract the archive - it extracts to rgbd_dataset_<seq_name>/
+        print(f"Extracting {seq_name}...")
+        with tarfile.open(tgz_path, 'r:gz') as tar:
+            # Extract to parent directory (data/tum/)
+            tar.extractall(seq_dir.parent)
+        
+        # The tar extracts to a directory named rgbd_dataset_<seq_name>
+        # which is what we want (it matches seq_dir)
+        
+        # Clean up archive
+        tgz_path.unlink()
+        
+    def _download_file(self, url: str, filepath: Path, 
+                      description: str = "Downloading") -> None:
+        """Download a file with progress bar."""
+        if filepath.exists():
+            print(f"File {filepath.name} already exists, skipping download.")
+            return
+            
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        
+        total_size = int(response.headers.get('content-length', 0))
+        
+        with open(filepath, 'wb') as f, tqdm(
+            desc=description,
+            total=total_size,
+            unit='B',
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as pbar:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    pbar.update(len(chunk))
+    
+    def load_poses(self, sequence: str = "fr1/desk") -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Load ground truth poses for a sequence.
+        
+        Args:
+            sequence: Sequence identifier
+            
+        Returns:
+            Tuple of (timestamps, poses) where poses are 4x4 transformation matrices
+        """
+        seq_name = self.SEQUENCES[sequence]
+        full_seq_name = f"rgbd_dataset_{seq_name}"
+        seq_dir = self.data_dir / "tum" / full_seq_name
+        groundtruth_file = seq_dir / "groundtruth.txt"
+        
+        if not groundtruth_file.exists():
+            raise FileNotFoundError(f"Ground truth file not found: {groundtruth_file}")
+        
+        # TUM format: timestamp tx ty tz qx qy qz qw
+        data = []
+        with open(groundtruth_file, 'r') as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                parts = line.strip().split()
+                if len(parts) == 8:
+                    data.append([float(x) for x in parts])
+        
+        data = np.array(data)
+        timestamps = data[:, 0]
+        
+        # Convert quaternion + translation to 4x4 matrices
+        poses = []
+        for row in data:
+            timestamp, tx, ty, tz, qx, qy, qz, qw = row
+            
+            # Create rotation matrix from quaternion
+            R = self._quaternion_to_rotation_matrix(qx, qy, qz, qw)
+            
+            # Create 4x4 transformation matrix
+            T = np.eye(4)
+            T[:3, :3] = R
+            T[:3, 3] = [tx, ty, tz]
+            
+            poses.append(T)
+        
+        return timestamps, np.array(poses)
+    
+    def _quaternion_to_rotation_matrix(self, qx: float, qy: float, 
+                                      qz: float, qw: float) -> np.ndarray:
+        """Convert quaternion to 3x3 rotation matrix."""
+        # Normalize quaternion
+        norm = np.sqrt(qx**2 + qy**2 + qz**2 + qw**2)
+        qx, qy, qz, qw = qx/norm, qy/norm, qz/norm, qw/norm
+        
+        # Convert to rotation matrix
+        R = np.array([
+            [1 - 2*(qy**2 + qz**2), 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
+            [2*(qx*qy + qw*qz), 1 - 2*(qx**2 + qz**2), 2*(qy*qz - qw*qx)],
+            [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), 1 - 2*(qx**2 + qy**2)]
+        ])
+        
+        return R
+    
+    def load_associations(self, sequence: str = "fr1/desk") -> Tuple[List[float], List[str], List[str]]:
+        """
+        Load RGB-D associations (synchronized RGB and depth image pairs).
+        
+        Args:
+            sequence: Sequence identifier
+            
+        Returns:
+            Tuple of (timestamps, rgb_paths, depth_paths)
+        """
+        seq_name = self.SEQUENCES[sequence]
+        full_seq_name = f"rgbd_dataset_{seq_name}"
+        seq_dir = self.data_dir / "tum" / full_seq_name
+        
+        # Load rgb.txt and depth.txt
+        rgb_file = seq_dir / "rgb.txt"
+        depth_file = seq_dir / "depth.txt"
+        
+        if not rgb_file.exists() or not depth_file.exists():
+            raise FileNotFoundError(f"RGB or depth file list not found in {seq_dir}")
+        
+        # Parse RGB timestamps and paths
+        rgb_data = {}
+        with open(rgb_file, 'r') as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                parts = line.strip().split()
+                if len(parts) == 2:
+                    timestamp, path = float(parts[0]), parts[1]
+                    rgb_data[timestamp] = str(seq_dir / path)
+        
+        # Parse depth timestamps and paths
+        depth_data = {}
+        with open(depth_file, 'r') as f:
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                parts = line.strip().split()
+                if len(parts) == 2:
+                    timestamp, path = float(parts[0]), parts[1]
+                    depth_data[timestamp] = str(seq_dir / path)
+        
+        # Associate RGB and depth images by finding closest timestamps
+        timestamps = []
+        rgb_paths = []
+        depth_paths = []
+        
+        rgb_times = sorted(rgb_data.keys())
+        depth_times = np.array(sorted(depth_data.keys()))
+        
+        for rgb_t in rgb_times:
+            # Find closest depth timestamp (within 0.02s tolerance)
+            diffs = np.abs(depth_times - rgb_t)
+            min_idx = np.argmin(diffs)
+            
+            if diffs[min_idx] < 0.02:  # 20ms tolerance
+                depth_t = depth_times[min_idx]
+                timestamps.append(rgb_t)
+                rgb_paths.append(rgb_data[rgb_t])
+                depth_paths.append(depth_data[depth_t])
+        
+        return timestamps, rgb_paths, depth_paths
+    
+    def get_camera_intrinsics(self, sequence: str = "fr1/desk") -> np.ndarray:
+        """
+        Get camera intrinsics for a sequence.
+        
+        TUM datasets use Kinect sensors with known calibration:
+        - Freiburg 1: 640x480, fx=517.3, fy=516.5, cx=318.6, cy=255.3
+        - Freiburg 2: 640x480, fx=520.9, fy=521.0, cx=325.1, cy=249.7
+        - Freiburg 3: 640x480, fx=535.4, fy=539.2, cx=320.1, cy=247.6
+        
+        Args:
+            sequence: Sequence identifier
+            
+        Returns:
+            3x3 camera intrinsics matrix
+        """
+        location = sequence.split('/')[0]
+        
+        if location == "fr1":
+            fx, fy, cx, cy = 517.3, 516.5, 318.6, 255.3
+        elif location == "fr2":
+            fx, fy, cx, cy = 520.9, 521.0, 325.1, 249.7
+        elif location == "fr3":
+            fx, fy, cx, cy = 535.4, 539.2, 320.1, 247.6
+        else:
+            raise ValueError(f"Unknown location: {location}")
+        
+        K = np.array([
+            [fx, 0, cx],
+            [0, fy, cy],
+            [0, 0, 1]
+        ])
+        
+        return K
+
+
 def download_kitti_sequence(sequence: str = "00", data_dir: str = "data") -> Path:
     """
     Convenience function to download a KITTI sequence.
@@ -233,8 +510,27 @@ def download_kitti_sequence(sequence: str = "00", data_dir: str = "data") -> Pat
     return fetcher.download_sequence(sequence)
 
 
+def download_tum_sequence(sequence: str = "fr1/desk", data_dir: str = "data") -> Path:
+    """
+    Convenience function to download a TUM RGB-D sequence.
+    
+    Args:
+        sequence: Sequence identifier (e.g., 'fr1/desk', 'fr2/large_with_loop')
+        data_dir: Directory to store data
+        
+    Returns:
+        Path to downloaded sequence
+    """
+    fetcher = TUMDatasetFetcher(data_dir)
+    return fetcher.download_sequence(sequence)
+
+
 if __name__ == "__main__":
     # Example usage
     print("Downloading KITTI sequence 00...")
-    seq_path = download_kitti_sequence("00")
-    print(f"Downloaded to: {seq_path}")
+    kitti_path = download_kitti_sequence("00")
+    print(f"Downloaded to: {kitti_path}")
+    
+    print("\nDownloading TUM sequence fr1/desk...")
+    tum_path = download_tum_sequence("fr1/desk")
+    print(f"Downloaded to: {tum_path}")

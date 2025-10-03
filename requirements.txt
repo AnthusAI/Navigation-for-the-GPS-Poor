@@ -19,7 +19,7 @@ pillow>=8.0.0
 # datasets>=1.18.0
 
 # Development tools (optional)
-# pytest>=6.0.0
+pytest>=6.0.0
 # black>=21.0.0
 # flake8>=3.9.0
 # isort>=5.9.0
