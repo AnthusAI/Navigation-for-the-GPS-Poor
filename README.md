@@ -32,9 +32,9 @@ Solve the scale ambiguity problem from Chapter 1 using a second camera to percei
 ### [Chapter 3: SLAM Fundamentals](chapters/3/index.md)
 Build a basic Simultaneous Localization and Mapping system that creates a 3D map of its environment.
 
-![SLAM 3D Map](chapters/3/images/slam_map_3d_200.png)
+![SLAM Loop Closure Detection](chapters/3/images/tum_slam_loop_closures.gif)
 
-*A 3D map of an office environment built in real-time using SLAM.*
+*Real-time SLAM with loop closure detection - when the system recognizes it's been somewhere before, it corrects its entire trajectory*
 
 - **Dataset**: TUM RGB-D Dataset
 - **Key Skills**: Loop closure, graph optimization, landmark management
