@@ -84,3 +84,12 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+
+# Artifacts
+artifacts/
+*/artifacts/
+**/*_dataset.pkl
+**/*_model.pth
+**/*_model_meta.json
+**/*_results.pkl
+**/*_history.json

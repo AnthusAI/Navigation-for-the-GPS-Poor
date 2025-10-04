@@ -81,3 +81,29 @@ By the end of this chapter, we will have a trained model that can estimate an ai
 We can apply this model to a sequence of images to create a full flight path, just like before. But this time, our system will be far more robust to the visual challenges that would have stumped our classical methods.
 
 Now, let's roll up our sleeves, introduce PyTorch to our environment, and teach our machine to see.
+
+## Two Paths Forward: Simple vs Accurate
+
+Throughout this chapter, we've learned that making deep learning work well requires several key ingredients:
+
+1. **More Training Data** - 5x more samples gives 30-40% improvement
+2. **Data Augmentation** - Rotation, scaling, and color jittering adds 20-30% improvement
+3. **Better Architecture** - Deeper layers with batch normalization and dropout adds 20-30% improvement
+4. **Smart Training** - Learning rate scheduling and early stopping adds 10-15% improvement
+
+Combined, these techniques can reduce position error by **60-75%**!
+
+We provide two ways to explore this material:
+
+- **[demo.ipynb](demo.ipynb)** - Full exploration with all the experimentation and architecture variants
+- **[simple_vs_accurate.py](simple_vs_accurate.py)** - Streamlined comparison showing just the simple way (fast) vs the accurate way (takes time)
+
+If you want to quickly see the improvement without working through every optimization detail, run the simplified script:
+
+```bash
+conda activate navigation-gps-poor
+cd chapters/4
+python simple_vs_accurate.py
+```
+
+See [README_SIMPLE_VS_ACCURATE.md](README_SIMPLE_VS_ACCURATE.md) for details.

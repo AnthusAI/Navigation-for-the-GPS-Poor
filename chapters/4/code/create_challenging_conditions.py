@@ -9,7 +9,7 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 
-def create_challenging_conditions_comparison():
+def create_challenging_conditions_comparison(image_path=None, output_dir=None):
     """
     Creates a side-by-side comparison showing:
     - Clear conditions (where classical CV works)
@@ -17,8 +17,19 @@ def create_challenging_conditions_comparison():
     """
     print("Creating challenging conditions comparison...")
     
+    # Default paths based on current working directory
+    import os
+    if image_path is None:
+        if os.path.basename(os.getcwd()) == 'code':
+            image_path = '../../../data/boneyard/davis_monthan_aerial.jpg'
+        else:
+            image_path = '../../data/boneyard/davis_monthan_aerial.jpg'
+    
+    if output_dir is None:
+        output_dir = '../images' if os.path.basename(os.getcwd()) == 'code' else 'images'
+    
     # Load source imagery
-    source_img = Image.open('data/boneyard/davis_monthan_aerial.jpg')
+    source_img = Image.open(image_path)
     
     # Crop a good section showing aircraft
     crop_box = (300, 200, 900, 600)  # 600x400 section
@@ -69,21 +80,32 @@ def create_challenging_conditions_comparison():
     sand_resized = sand_img.resize((600, 400))
     grid_img.paste(sand_resized, (600, 400))
     
-    output_path = Path('chapters/4/images/challenging_conditions.png')
+    output_path = Path(output_dir) / 'challenging_conditions.png'
     grid_img.save(output_path, quality=95)
     
     print(f"✅ Saved comparison to {output_path}")
     return output_path
 
 
-def create_foggy_flyover():
+def create_foggy_flyover(image_path=None, output_dir=None):
     """
     Creates an animated fly-over showing increasingly challenging conditions.
     Starts clear, progressively adds fog to show how visibility degrades.
     """
     print("\nCreating foggy fly-over animation...")
     
-    source_img = Image.open('data/boneyard/davis_monthan_aerial.jpg')
+    # Default paths based on current working directory
+    import os
+    if image_path is None:
+        if os.path.basename(os.getcwd()) == 'code':
+            image_path = '../../../data/boneyard/davis_monthan_aerial.jpg'
+        else:
+            image_path = '../../data/boneyard/davis_monthan_aerial.jpg'
+    
+    if output_dir is None:
+        output_dir = '../images' if os.path.basename(os.getcwd()) == 'code' else 'images'
+    
+    source_img = Image.open(image_path)
     src_width, src_height = source_img.size
     
     frames = []
@@ -115,7 +137,7 @@ def create_foggy_flyover():
         frame = frame.convert('P', palette=Image.ADAPTIVE, colors=128)
         frames.append(frame)
     
-    output_path = Path('chapters/4/images/foggy_flyover.gif')
+    output_path = Path(output_dir) / 'foggy_flyover.gif'
     print(f"Saving {len(frames)} frames...")
     
     frames[0].save(
@@ -133,9 +155,86 @@ def create_foggy_flyover():
     return output_path
 
 
+def create_challenging_conditions_gif(image_path=None, output_dir=None):
+    """
+    Creates an animated GIF cycling through challenging conditions.
+    Shows clear -> fog -> low light -> sandstorm -> repeat
+    """
+    print("\nCreating challenging conditions animated GIF...")
+    
+    # Default paths based on current working directory
+    import os
+    if image_path is None:
+        if os.path.basename(os.getcwd()) == 'code':
+            image_path = '../../../data/boneyard/davis_monthan_aerial.jpg'
+        else:
+            image_path = '../../data/boneyard/davis_monthan_aerial.jpg'
+    
+    if output_dir is None:
+        output_dir = '../images' if os.path.basename(os.getcwd()) == 'code' else 'images'
+    
+    source_img = Image.open(image_path)
+    
+    # Crop a good section showing aircraft
+    crop_box = (300, 200, 1100, 600)  # 800x400 section
+    clear_img = source_img.crop(crop_box)
+    
+    frames = []
+    
+    # Frame 1: Clear (hold longer)
+    for _ in range(3):
+        frames.append(clear_img.convert('P', palette=Image.ADAPTIVE, colors=128))
+    
+    # Frame 2: Dense fog
+    fog_img = clear_img.copy()
+    fog_img = fog_img.filter(ImageFilter.GaussianBlur(radius=5))
+    fog_overlay = Image.new('RGB', fog_img.size, (240, 240, 245))
+    fog_img = Image.blend(fog_img, fog_overlay, alpha=0.5)
+    for _ in range(3):
+        frames.append(fog_img.convert('P', palette=Image.ADAPTIVE, colors=128))
+    
+    # Frame 3: Low light / darkness
+    dark_img = clear_img.copy()
+    enhancer = ImageEnhance.Brightness(dark_img)
+    dark_img = enhancer.enhance(0.3)
+    # Add noise
+    dark_np = np.array(dark_img)
+    noise = np.random.randint(-20, 20, dark_np.shape, dtype=np.int16)
+    dark_np = np.clip(dark_np.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+    dark_img = Image.fromarray(dark_np)
+    for _ in range(3):
+        frames.append(dark_img.convert('P', palette=Image.ADAPTIVE, colors=128))
+    
+    # Frame 4: Sandstorm
+    sand_img = clear_img.copy()
+    sand_img = sand_img.filter(ImageFilter.GaussianBlur(radius=3))
+    sand_overlay = Image.new('RGB', sand_img.size, (210, 180, 140))
+    sand_img = Image.blend(sand_img, sand_overlay, alpha=0.6)
+    for _ in range(3):
+        frames.append(sand_img.convert('P', palette=Image.ADAPTIVE, colors=128))
+    
+    output_path = Path(output_dir) / 'challenging_conditions.gif'
+    print(f"Saving {len(frames)} frames...")
+    
+    frames[0].save(
+        output_path,
+        save_all=True,
+        append_images=frames[1:],
+        duration=500,  # 500ms per frame
+        loop=0
+    )
+    
+    file_size_mb = output_path.stat().st_size / (1024 * 1024)
+    print(f"✅ Created challenging conditions animation: {file_size_mb:.1f} MB")
+    print(f"   Cycles through: clear → fog → low light → sandstorm")
+    
+    return output_path
+
+
 if __name__ == "__main__":
-    # Create both visualizations
+    # Create all visualizations
     create_challenging_conditions_comparison()
+    create_challenging_conditions_gif()
     create_foggy_flyover()
     
     print("\n✨ All challenging conditions visualizations created!")

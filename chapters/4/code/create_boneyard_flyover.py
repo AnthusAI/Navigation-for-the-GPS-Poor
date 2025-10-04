@@ -9,8 +9,8 @@ from pathlib import Path
 from tqdm import tqdm
 
 def create_flyover_animation(
-    image_path: str = "data/boneyard/davis_monthan_aerial.jpg",
-    output_path: str = "chapters/4/images/boneyard_flyover.gif",
+    image_path: str = "../../data/boneyard/davis_monthan_aerial.jpg",
+    output_path: str = "images/boneyard_flyover.gif",
     frame_width: int = 1280,
     frame_height: int = 720,
     step_size: int = 10,
@@ -86,9 +86,18 @@ def create_flyover_animation(
 if __name__ == "__main__":
     # Create a smooth, high-quality fly-over animation
     # Longer flight distance with faster movement per frame (~10 second animation)
+    # Detect if running from code/ or chapters/4/
+    import os
+    if os.path.basename(os.getcwd()) == 'code':
+        image_path = "../../../data/boneyard/davis_monthan_aerial.jpg"
+        output_path = "../images/boneyard_flyover.gif"
+    else:
+        image_path = "../../data/boneyard/davis_monthan_aerial.jpg"
+        output_path = "images/boneyard_flyover.gif"
+    
     create_flyover_animation(
-        image_path="data/boneyard/davis_monthan_aerial.jpg",
-        output_path="chapters/4/images/boneyard_flyover.gif",
+        image_path=image_path,
+        output_path=output_path,
         frame_width=1280,  # 16:9 aspect ratio
         frame_height=720,
         step_size=8,  # Faster movement = covers more distance per frame
