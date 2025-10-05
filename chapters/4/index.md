@@ -105,24 +105,42 @@ Our final improvement adds spatial attention layers that allow the model to dyna
 
 We train all architectures on identical data and evaluate them on our standardized flight path. The comparison reveals not just which model is most accurate, but also the trade-offs between accuracy, training time, and computational requirements. This systematic approach demonstrates how machine learning research progresses through iterative hypothesis testing and refinement.
 
-**Improved Model Results**
+## Complete Model Development Journey
 
-Here's how the improved model with BatchNorm performs on the same terrain:
+Our systematic approach to model improvement reveals a crucial lesson: architectural complexity doesn't guarantee better performance. Here's our complete progression with real trained models and their actual results:
 
-![Improved CNN model prediction accuracy showing 235px error with ground truth, prediction point, error line, and CNN input area clearly marked.](images/improved_cnn_context_demo.png)
+### 1. Simple Baseline CNN → 153.9px ✅ **Best Performing**
 
-The improved model achieves a "Poor" prediction with 235px error - significantly worse than the baseline. The red square shows where the improved model predicted, connected by a red line to the ground truth (green circle). Note the much larger error circle compared to the baseline model.
+![Simple baseline CNN showing the best prediction accuracy across all attempts.](images/simple_baseline_prediction_accuracy.png)
 
-**CoordConv Model Results**
+Our simple baseline achieved the best overall performance and remained unbeaten throughout all improvement attempts.
 
-Here's how the improved model performs compared to our baseline:
+### 2. CoordConv Architecture → 222.8px ⚠️ **45% Worse**
 
-| Model | Mean Error | Median Error | Max Error | Performance |
-|-------|------------|--------------|-----------|-------------|
-| Simple Baseline | 154 pixels | 143 pixels | 617 pixels | ✅ **Better** |
-| Improved (BatchNorm) | 284 pixels | 281 pixels | 609 pixels | ❌ **Worse** |
+![CoordConv model showing degraded performance despite spatial bias handling.](images/real_coordconv_prediction_accuracy.png)
 
-The improved model with BatchNorm and deeper architecture actually performed significantly worse than our simple baseline - an 84% increase in mean error (154 → 284 pixels). This demonstrates that for this specific terrain navigation task, the simpler architecture proved more effective, likely due to overfitting or the model struggling with the additional complexity when training data is limited.
+CoordConv, designed specifically to handle spatial bias, performed significantly worse than the baseline.
+
+### 3. Improved with BatchNorm → 283.5px ❌ **84% Worse**
+
+![Improved model with BatchNorm showing poor prediction accuracy and large error.](images/improved_model_prediction_accuracy.png)
+
+Adding BatchNorm and deeper layers caused severe performance degradation.
+
+### 4. "Best Model" Attempt → 297.3px ❌ **93% Worse**
+
+![Most complex architecture showing the worst overall performance of all attempts.](images/best_model_prediction_accuracy.png)
+
+Our most sophisticated architecture produced the worst results, proving that complexity can hurt performance.
+
+## Model Performance Summary
+
+| Model | Mean Error | Performance | Result |
+|-------|------------|-------------|---------|
+| Simple Baseline | 153.9px | ✅ **Best** | Winner |
+| CoordConv | 222.8px | ⚠️ **Fair** | 45% worse |
+| BatchNorm | 283.5px | ❌ **Poor** | 84% worse |
+| "Best" Model | 297.3px | ❌ **Worst** | 93% worse |
 
 ### Experimental Results: When Improvements Don't Improve
 
@@ -189,13 +207,23 @@ The ultimate test is the simulated flight. We'll generate an animation showing t
 
 ![An animation showing a split-screen view. On the left, the camera's view of the desert terrain. On the right, a map showing the ground truth position and the model's predicted position, updating with each frame.](images/simulated_flight_evaluation.png)
 
-## Final Model Comparison
+## Flight Path Performance Comparison
 
-The improved model's trajectory performance shows why it failed:
+Here's how each model performs across the complete flight trajectory:
 
-![Improved CNN model showing larger error circles and worse performance along the same flight path.](images/improved_model_trajectory.png)
+### Simple Baseline (Winner) - Tight Error Control
+![Simple baseline showing consistently small error circles along the flight path.](images/simple_baseline_trajectory.png)
 
-Compared to the baseline model shown earlier, the improved model exhibits significantly larger error circles throughout the entire flight path, demonstrating that architectural complexity doesn't guarantee better performance.
+### CoordConv Architecture - Moderate Degradation
+![CoordConv showing larger error circles than baseline throughout the flight.](images/real_coordconv_trajectory.png)
+
+### BatchNorm Model - Severe Degradation
+![BatchNorm model showing much larger error circles and poor flight path performance.](images/improved_model_trajectory.png)
+
+### "Best" Model - Worst Performance
+![Most complex model showing the largest error circles and worst trajectory performance.](images/best_model_trajectory.png)
+
+The trajectory comparison clearly shows the performance degradation: each "improvement" attempt resulted in larger error circles throughout the entire flight path, with the simple baseline maintaining the tightest error control from desert to airbase.
 
 ### Let's Get Started!
 
