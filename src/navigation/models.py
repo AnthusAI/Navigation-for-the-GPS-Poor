@@ -11,6 +11,47 @@ import torchvision.models as models
 
 
 # ============================================================================
+# Basic Models for Terrain Navigation
+# ============================================================================
+
+class SimpleCNN(nn.Module):
+    """A simple CNN that takes a 3x256x256 image and predicts (x, y) coordinates."""
+    def __init__(self):
+        super(SimpleCNN, self).__init__()
+        self.conv_layers = nn.Sequential(
+            # Input: 3 x 256 x 256
+            nn.Conv2d(3, 16, kernel_size=5, stride=2, padding=2), # -> 16 x 128 x 128
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), # -> 16 x 64 x 64
+            
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1), # -> 32 x 64 x 64
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), # -> 32 x 32 x 32
+            
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1), # -> 64 x 32 x 32
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), # -> 64 x 16 x 16
+            
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1), # -> 128 x 16 x 16
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), # -> 128 x 8 x 8
+        )
+        
+        self.fc_layers = nn.Sequential(
+            nn.Linear(128 * 8 * 8, 512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, 2),
+            nn.Sigmoid()  # To ensure output is between 0 and 1
+        )
+
+    def forward(self, x):
+        x = self.conv_layers(x)
+        x = x.view(x.size(0), -1)  # Flatten the feature map
+        x = self.fc_layers(x)
+        return x
+
+# ============================================================================
 # Basic Models
 # ============================================================================
 

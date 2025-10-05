@@ -15,9 +15,13 @@ from pathlib import Path
 import pickle
 import json
 from tqdm import tqdm
+from PIL import Image
+import torchvision.transforms as transforms
+import os
 
 # Import all models from models.py
 from .models import (
+    SimpleCNN,
     PoseNet, ImprovedPoseNet, SmallPoseNet, MediumPoseNet, LargePoseNet,
     ResNetPoseNet, CoordConvPoseNet, AttentionPoseNet,
     SimplePoseNet, AccuratePoseNet  # Aliases
@@ -26,10 +30,12 @@ from .models import (
 # Re-export models for convenience
 __all__ = [
     # Models
+    'SimpleCNN',
     'PoseNet', 'ImprovedPoseNet', 'SmallPoseNet', 'MediumPoseNet', 'LargePoseNet',
     'ResNetPoseNet', 'CoordConvPoseNet', 'AttentionPoseNet',
     'SimplePoseNet', 'AccuratePoseNet',
     # Dataset
+    'TerrainDataset',
     'FlightDataset', 'generate_flight_dataset',
     # Training
     'train_model', 'evaluate_model',
@@ -38,6 +44,83 @@ __all__ = [
     # Utils
     'get_device', 'count_parameters'
 ]
+
+
+class TerrainDataset(Dataset):
+    """
+    A PyTorch Dataset to sample random tiles from a large satellite image.
+    Each item is a tuple of (image_tile, coordinates).
+
+    This version is memory-efficient as it loads the large image once and
+    crops tiles on-the-fly in __getitem__.
+    """
+    def __init__(self, image_path: str, num_samples: int, tile_size: int, 
+                 seed: int = 42, transform: Optional[nn.Module] = None):
+        """
+        Args:
+            image_path (str): Path to the large satellite image.
+            num_samples (int): The total number of random samples to generate.
+            tile_size (int): The width and height of the square tiles.
+            seed (int): Random seed for reproducibility.
+            transform (callable, optional): Optional transform to be applied on a sample.
+        """
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Satellite image not found at {image_path}")
+        
+        self.image = Image.open(image_path).convert('RGB')
+        self.image_width, self.image_height = self.image.size
+        self.num_samples = num_samples
+        self.tile_size = tile_size
+        
+        # Pre-generate random coordinates to sample from
+        self.coordinates = self._generate_coordinates(seed)
+
+        # Use provided transform or a default one
+        if transform:
+            self.transform = transform
+        else:
+            self.transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            ])
+
+    def _generate_coordinates(self, seed: int) -> List[Tuple[int, int]]:
+        """Generates a list of random top-left coordinates for sampling."""
+        rng = np.random.RandomState(seed)
+        max_x = self.image_width - self.tile_size
+        max_y = self.image_height - self.tile_size
+        x_coords = rng.randint(0, max_x, self.num_samples)
+        y_coords = rng.randint(0, max_y, self.num_samples)
+        return list(zip(x_coords, y_coords))
+
+    def __len__(self) -> int:
+        """Return the total number of samples."""
+        return self.num_samples
+
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Fetches the sample at the given index.
+        Returns:
+            tuple: (tile_image, normalized_coordinates) where tile_image is a
+                   Tensor and normalized_coordinates is a Tensor of shape (2,).
+        """
+        x1, y1 = self.coordinates[idx]
+        x2, y2 = x1 + self.tile_size, y1 + self.tile_size
+
+        tile_image = self.image.crop((x1, y1, x2, y2))
+        
+        center_x = x1 + self.tile_size / 2
+        center_y = y1 + self.tile_size / 2
+        
+        norm_x = center_x / self.image_width
+        norm_y = center_y / self.image_height
+        
+        coordinates = torch.tensor([norm_x, norm_y], dtype=torch.float32)
+
+        if self.transform:
+            tile_image = self.transform(tile_image)
+            
+        return tile_image, coordinates
 
 
 class FlightDataset(Dataset):
@@ -64,12 +147,11 @@ class FlightDataset(Dataset):
         pose = self.poses[idx]
         
         if self.transform:
-            # Convert numpy array to PIL Image for torchvision transforms
-            from PIL import Image
-            if isinstance(frame, np.ndarray):
-                frame = Image.fromarray(frame)
+            # Apply transform - it should handle numpy->PIL conversion if needed
+            # (via ToPILImage() in the transform itself)
             frame = self.transform(frame)
         else:
+            # No transform: convert numpy to tensor manually
             frame = torch.from_numpy(frame).permute(2, 0, 1).float() / 255.0
         
         return frame, torch.from_numpy(pose).float()
@@ -158,16 +240,13 @@ def train_model(model: nn.Module,
     train_losses = []
     val_losses = []
     
-    iterator = range(num_epochs)
-    if verbose:
-        iterator = tqdm(iterator, desc="Training")
-    
-    for epoch in iterator:
+    for epoch in range(num_epochs):
         # Training phase
         model.train()
         train_loss = 0.0
         
-        for frames_batch, poses_batch in train_loader:
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=False)
+        for frames_batch, poses_batch in progress_bar:
             frames_batch = frames_batch.to(device)
             poses_batch = poses_batch.to(device)
             
@@ -178,7 +257,8 @@ def train_model(model: nn.Module,
             optimizer.step()
             
             train_loss += loss.item()
-        
+            progress_bar.set_postfix(loss=loss.item())
+
         train_loss /= len(train_loader)
         train_losses.append(train_loss)
         
@@ -215,7 +295,7 @@ def train_model(model: nn.Module,
                     print(f"\nEarly stopping at epoch {epoch+1}")
                 break
         
-        if verbose and (epoch + 1) % 5 == 0:
+        if verbose:
             tqdm.write(f"Epoch {epoch+1:2d}/{num_epochs} - "
                       f"Train: {train_loss:.6f}, Val: {val_loss:.6f}")
     
