@@ -21,7 +21,12 @@ def load_all_models():
         'real_coordconv': 'CoordConv Architecture',
         'improved_model': 'Improved with BatchNorm',
         'best_model': 'Best Model Attempt',
-        'universal_model_flight': 'Universal CNN (NEW BEST)'
+        'universal_model_flight': 'Universal CNN',
+        'efficientnet_b3_flight': 'EfficientNet B3',
+        'resnet50_attention_flight': 'ResNet50 Attention',
+        'multiscale_cnn_flight': 'MultiScale CNN',
+        'heavy_attention_flight': 'Heavy Attention',
+        'densenet_deep_flight': 'DenseNet Deep (CHAMPION)'
     }
 
     results = {}

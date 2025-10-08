@@ -40,16 +40,17 @@ Build a basic Simultaneous Localization and Mapping system that creates a 3D map
 - **Key Skills**: Loop closure, graph optimization, landmark management
 - **Difficulty**: Intermediate
 
-### [Chapter 4: Deep Learning for Visual Navigation](chapters/4/index.md)
-Implement learning-based navigation using neural networks and learn how CNNs can directly estimate camera pose.
+### [Chapter 4: Teaching an Aircraft to See](chapters/4/index.md)
+Train a deep learning model to determine aircraft location from a single terrain image - GPS-poor navigation using visual localization.
 
-![Neural Network Navigation](chapters/4/images/boneyard_flyover.gif)
+![Complete Flight Path Navigation Analysis](chapters/4/images/navigation_flight_trajectory.png)
 
-*CNN-based navigation flying over the Davis-Monthan Aircraft Boneyard - the neural network predicts camera position and orientation from raw aerial imagery*
+*DenseNet-based visual localization system achieving 155m accuracy - the model predicts absolute coordinates from raw 224×224 terrain tiles without GPS*
 
-- **Dataset**: RarePlanes + Custom Aerial Imagery
-- **Key Skills**: CNN pose estimation, neural network architecture, training pipelines
+- **Dataset**: Custom stochastic flight scenarios with realistic crash probabilities
+- **Key Skills**: Visual localization, terrain recognition, realistic training data generation
 - **Difficulty**: Advanced
+- **Results**: 155m mean error on diverse mission scenarios
 
 ### [Chapter 5: Sensor Fusion](chapters/5/) *(Coming Soon)*
 Combine multiple sensors for robust navigation.
