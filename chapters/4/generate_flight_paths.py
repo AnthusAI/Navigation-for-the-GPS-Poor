@@ -212,7 +212,7 @@ def generate_stochastic_flight_path(start_pos, end_pos, max_steps=600):
 
     return np.array(path)
 
-def generate_multiple_flight_paths(target_samples=2000):
+def generate_multiple_flight_paths(target_samples=5000):
     """Generate stochastic flight paths until reaching target training samples."""
 
     # Get start and end positions from flight config
@@ -309,22 +309,53 @@ def create_flight_paths_visualization(flight_paths, crash_sites=[]):
         all_training_samples.extend(training_samples)
 
         # Draw training sample tiles FIRST (lower z-order)
-        tile_size = 224
-        for sample in training_samples:
+        # With variable scale and rotation
+        base_tile_size = 224
+
+        for idx, sample in enumerate(training_samples):
             x, y = sample
 
             # Only draw if within zoom area
             if x_min <= x <= x_max and y_min <= y <= y_max:
                 from matplotlib.patches import Rectangle
+                from matplotlib.transforms import Affine2D
+
+                # Variable scale (altitude simulation) - zoom factor between 0.5 and 2.0
+                # Use index-based deterministic variation for consistency
+                zoom = 0.5 + (1.5 * ((idx * 17 + i * 37) % 100) / 100.0)  # Deterministic 0.5-2.0 range
+                tile_size = base_tile_size * zoom
+
+                # Calculate heading based on aircraft movement at this sample
+                # Find corresponding index in original path
+                if len(path) > 1:
+                    # Find closest point in path
+                    distances = np.sqrt((path[:, 0] - x)**2 + (path[:, 1] - y)**2)
+                    path_idx = np.argmin(distances)
+
+                    # Calculate heading from movement
+                    if path_idx < len(path) - 1:
+                        dx = path[path_idx + 1][0] - path[path_idx][0]
+                        dy = path[path_idx + 1][1] - path[path_idx][1]
+                        heading = np.degrees(np.arctan2(dy, dx))
+                    else:
+                        heading = 0
+                else:
+                    heading = 0
+
+                # Create rotated rectangle
                 tile_rect = Rectangle(
-                    (x - tile_size/2, y - tile_size/2),
+                    (-tile_size/2, -tile_size/2),  # Centered at origin
                     tile_size, tile_size,
-                    linewidth=0.5,
+                    linewidth=0.1,
                     edgecolor='blue',
                     facecolor='blue',
-                    alpha=0.05,  # Much more transparent for heavy coverage
+                    alpha=0.003,  # Extremely transparent for heavy coverage
                     zorder=6
                 )
+
+                # Apply rotation and translation
+                t = Affine2D().rotate_deg(heading).translate(x, y) + ax.transData
+                tile_rect.set_transform(t)
                 ax.add_patch(tile_rect)
 
     # Second pass: draw ALL flight paths as white lines ON TOP of blue tiles
@@ -361,12 +392,11 @@ def create_flight_paths_visualization(flight_paths, crash_sites=[]):
     # Add info box
     total_samples = len(all_training_samples)
     completed_flights = len(flight_paths) - len(crash_sites)
-    info_text = f"""Stochastic Flight Path Training
+    info_text = f"""Simulated Reconnaissance Flights
 • {len(flight_paths)} total overflights
 • {completed_flights} completed, {len(crash_sites)} crashed
 • {total_samples} training samples total
-• 224×224 pixel tiles (blue squares)
-• Realistic aircraft dynamics"""
+• Variable scale and rotation (blue squares)"""
 
     ax.text(0.02, 0.98, info_text, transform=ax.transAxes,
            fontsize=11, verticalalignment='top', fontweight='bold',
@@ -399,8 +429,8 @@ def main():
     print("🛩️  Stochastic Flight Path Generation")
     print("=" * 45)
 
-    # Generate flight paths until we have 1000 training samples
-    flight_paths, crash_sites = generate_multiple_flight_paths(target_samples=1000)
+    # Generate flight paths until we have 5000 training samples
+    flight_paths, crash_sites = generate_multiple_flight_paths(target_samples=5000)
 
     # Create visualization with crash sites
     training_samples = create_flight_paths_visualization(flight_paths, crash_sites)

@@ -54,7 +54,7 @@ class FlightAnimator:
         return width, height
 
     def _extract_flight_frames(self, flight_name: str = "main_evaluation",
-                             tile_size: int = 800) -> Tuple[List[np.ndarray], np.ndarray]:
+                             tile_size: int = 1600) -> Tuple[List[np.ndarray], np.ndarray]:
         """
         Extract terrain frames along the flight path using DRY systems.
 
@@ -243,7 +243,7 @@ class FlightAnimator:
         return np.array(pil_frame)
 
     def create_flight_animation(self, flight_name: str = "main_evaluation",
-                              tile_size: int = 800, save_path: Optional[str] = None) -> str:
+                              tile_size: int = 1600, save_path: Optional[str] = None) -> str:
         """
         Create complete flight path animation with specified parameters.
 
@@ -375,7 +375,7 @@ class FlightAnimator:
         print(f"\n🖼️ Creating {num_preview_frames} preview frames...")
 
         # Extract subset of terrain frames
-        terrain_frames, _ = self._extract_flight_frames(flight_name, 800)
+        terrain_frames, _ = self._extract_flight_frames(flight_name, 1600)
         flight_info = FlightPathConfig.get_flight_info(flight_name)
 
         # Select evenly spaced frames for preview

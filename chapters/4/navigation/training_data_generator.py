@@ -40,6 +40,50 @@ class TrainingDataGenerator:
         print(f"✅ Training Data Generator initialized")
         print(f"   Max distance from flight path: {max_distance_from_path} pixels")
 
+    def _get_aircraft_heading_at_location(self, x: float, y: float,
+                                        flight_path_pixels: np.ndarray) -> float:
+        """
+        Calculate aircraft heading for a location based on the nearest flight path segment.
+
+        Args:
+            x, y: Location coordinates in pixels
+            flight_path_pixels: Array of flight path coordinates
+
+        Returns:
+            Aircraft heading in degrees (0-360)
+        """
+        location = np.array([x, y])
+
+        # Find closest point on flight path
+        distances = np.linalg.norm(flight_path_pixels - location, axis=1)
+        closest_idx = np.argmin(distances)
+
+        # Calculate heading based on flight path direction at closest point
+        if closest_idx < len(flight_path_pixels) - 1:
+            # Use forward direction
+            current_point = flight_path_pixels[closest_idx]
+            next_point = flight_path_pixels[closest_idx + 1]
+            direction_vector = next_point - current_point
+        elif closest_idx > 0:
+            # Use backward direction (at end of path)
+            current_point = flight_path_pixels[closest_idx]
+            prev_point = flight_path_pixels[closest_idx - 1]
+            direction_vector = current_point - prev_point
+        else:
+            # Single point path (shouldn't happen)
+            return 0.0
+
+        # Calculate heading from direction vector
+        # atan2(dx, dy) gives angle from north (y-axis)
+        # Note: y-axis is inverted in image coordinates
+        heading_rad = np.arctan2(direction_vector[0], -direction_vector[1])
+        heading_deg = np.degrees(heading_rad)
+
+        # Normalize to [0, 360] range
+        heading_deg = (heading_deg + 360) % 360
+
+        return heading_deg
+
     def generate_flight_corridor_samples(self,
                                        flight_name: str = "main_evaluation",
                                        num_samples: int = 5000,
@@ -101,9 +145,15 @@ class TrainingDataGenerator:
             sample_y = np.clip(sample_y, tile_size//2, 7500 - tile_size//2)
 
             try:
-                # Extract terrain tile using DRY TerrainWindow
+                # Calculate aircraft heading for this location
+                aircraft_heading = self._get_aircraft_heading_at_location(
+                    sample_x, sample_y, pixel_coords
+                )
+
+                # Extract terrain tile using DRY TerrainWindow with aircraft perspective
                 terrain_tile = self.terrain_window.extract_window(
-                    sample_x, sample_y, tile_size
+                    sample_x, sample_y, tile_size,
+                    aircraft_heading=aircraft_heading
                 )
                 terrain_tiles.append(terrain_tile)
 

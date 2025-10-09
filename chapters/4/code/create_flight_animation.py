@@ -30,7 +30,7 @@ def create_flight_animation():
     pause_frames = 25    # 5 seconds at 5 FPS
     total_frames = flight_frames + pause_frames
 
-    zoom_factor = 8    # Pull back 2x from 16 (now 2x more zoom than original 4)
+    zoom_factor = 3    # Zoomed out for wider view and less blur
 
     # Flight path coordinates (same as trajectory visualization)
     start_coord = (5500, 4500)  # Desert start
