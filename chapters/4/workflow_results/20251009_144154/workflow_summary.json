@@ -1,0 +1,86 @@
+{
+  "workflow_info": {
+    "timestamp": "20251009_144154",
+    "working_directory": ".",
+    "results_directory": "workflow_results/20251009_144154",
+    "config": {
+      "data_generation": {
+        "flight_name": "main_evaluation",
+        "num_samples": 500,
+        "corridor_width": 1000.0,
+        "tile_size": 224,
+        "effect_probability": 0.7
+      },
+      "training": {
+        "arch": "basic",
+        "epochs": 10,
+        "lr": 0.0001,
+        "batch_size": 16,
+        "noise_prob": 0.7
+      },
+      "evaluation": {
+        "num_points": 10,
+        "fps": 2
+      }
+    }
+  },
+  "data_generation": {
+    "success": true,
+    "dataset_path": "training_datasets/augmented_flight_dataset_main_evaluation_20251009_144155.pkl",
+    "num_samples": 500,
+    "summary": {
+      "coordinate_range": {
+        "x_min": 0.5457493502147805,
+        "x_max": 0.8584546702497412,
+        "y_min": 0.5438920498803049,
+        "y_max": 0.7102694111954218
+      },
+      "heading_statistics": {
+        "mean": 296.1981432371199,
+        "std": 2.8628292371899464,
+        "min": 291.175540290929,
+        "max": 301.152764958664
+      },
+      "environmental_presets": {
+        "Clear Day Conditions": 109,
+        "Overcast Conditions": 63,
+        "No Effects": 147,
+        "Hazy/Dusty Conditions": 63,
+        "Dawn/Dusk Lighting": 40,
+        "High Altitude (Bright, Clear)": 35,
+        "Low Visibility (Fog/Smoke)": 43
+      },
+      "altitude_scenarios": {
+        "Normal Altitude (800-1500m)": 196,
+        "High Altitude (1500-2500m)": 154,
+        "Low Altitude (500-800m)": 150
+      }
+    }
+  },
+  "training": {
+    "success": true,
+    "model_id": "model_20251009_144154",
+    "model_path": "artifacts/model_20251009_144229.pth",
+    "config": {
+      "arch": "basic",
+      "epochs": 10,
+      "lr": 0.0001,
+      "batch_size": 16,
+      "noise_prob": 0.7
+    },
+    "stdout": "\ud83c\udfaf Training Navigation Model\n  Data: training_datasets/augmented_flight_dataset_main_evaluation_20251009_144155.pkl\n  Architecture: basic\n  Epochs: 10\n  Learning rate: 0.0001\n  Augmentation enabled: True\n  Uncertainty estimation: False\nLoading data from training_datasets/augmented_flight_dataset_main_evaluation_20251009_144155.pkl...\n  Samples: 500\n  Coord range: 0.544 to 0.858\n  Using pre-augmented dataset:\n    Tiles already include: aircraft perspective, variable scale, environmental effects\n    Applying additional color jitter augmentation during training\nTraining on mps for up to 10 epochs (with early stopping)\n  Train samples: 400\n  Val samples: 100\n  Uncertainty estimation: False\n  Epoch  1/10 | Train: 4271m | Val: 2282m | LR: 9.8e-05\n    \u2192 Saved best model: artifacts/model_20251009_144205.pth (2282m)\n  Epoch  2/10 | Train: 2225m | Val: 2147m | LR: 9.1e-05\n    \u2192 Saved best model: artifacts/model_20251009_144209.pth (2147m)\n  Epoch  3/10 | Train: 1976m | Val: 1982m | LR: 8.0e-05\n    \u2192 Saved best model: artifacts/model_20251009_144212.pth (1982m)\n  Epoch  4/10 | Train: 1776m | Val: 1774m | LR: 6.6e-05\n    \u2192 Saved best model: artifacts/model_20251009_144215.pth (1774m)\n  Epoch  5/10 | Train: 1550m | Val: 1544m | LR: 5.1e-05\n    \u2192 Saved best model: artifacts/model_20251009_144219.pth (1544m)\n  Epoch  6/10 | Train: 1424m | Val: 1225m | LR: 3.5e-05\n    \u2192 Saved best model: artifacts/model_20251009_144222.pth (1225m)\n  Epoch  7/10 | Train: 1285m | Val: 1233m | LR: 2.1e-05\n  Epoch  8/10 | Train: 1329m | Val: 1195m | LR: 1.0e-05\n    \u2192 Saved best model: artifacts/model_20251009_144229.pth (1195m)\n  Epoch  9/10 | Train: 1286m | Val: 1239m | LR: 3.4e-06\n  Epoch 10/10 | Train: 1199m | Val: 1213m | LR: 1.0e-06\n\n\u2705 Training completed!\n  Best validation error: 1195 meters\n  Total epochs: 10\n\n\u2705 Training complete!\n  Best validation error: 1195 meters\n  Model: artifacts/model_20251009_144229.pth\n  Results: artifacts/training_results_20251009_144236.json\n",
+    "stderr": ""
+  },
+  "evaluation": {
+    "success": true,
+    "model_path": "artifacts/model_20251009_144229.pth",
+    "num_points": 10,
+    "visualizations": {
+      "trajectory": "images/navigation_flight_trajectory.png",
+      "animation": "images/evaluation_flight_path.gif"
+    },
+    "stdout": "\ud83d\udcca Augmented Model Evaluation (Live Generation)\n============================================================\nModel: artifacts/model_20251009_144229.pth\nFlight: main_evaluation\nEvaluation points: 10\n\ud83c\udfaf Evaluating Model on Flight Path (Live Generation)\n============================================================\n  Model: artifacts/model_20251009_144229.pth\n  Flight: main_evaluation\n  Evaluation points: 10\n\u2705 Stitched map loaded: (7500, 7500, 3)\n  Flight path loaded: 400 total points\n\n  Generating images and running predictions...\n    Progress: 5/10 | Heading: 296\u00b0 | Error: 11096m\n    Progress: 10/10 | Heading: 296\u00b0 | Error: 2576m\n\n\u2705 Evaluation Complete!\n  Mean error: 6305.8m\n  Median error: 6679.1m\n  Std error: 3374.5m\n  Min error: 1680.8m\n  Max error: 11095.7m\n\n\ud83c\udfac Creating Evaluation Animation\n\u2705 Evaluation animation saved: images/evaluation_flight_path.gif\n   Frames: 10, Duration: 500ms/frame (2 fps)\n\n\ud83c\udfa8 Creating Trajectory Visualization\n\u2705 Stitched map loaded: (7500, 7500, 3)\n\u2705 Satellite map loaded for visualization: (7500, 7500, 3)\n\u2705 Flight path visualization saved: images/navigation_flight_trajectory.png\n\n\u2705 Evaluation Complete!\n  Results: artifacts/live_evaluation_results.pkl\n  Trajectory visualization: images/navigation_flight_trajectory.png\n  Animation: images/evaluation_flight_path.gif\n  Mean error: 6305.8m\n",
+    "stderr": ""
+  },
+  "success": true
+}

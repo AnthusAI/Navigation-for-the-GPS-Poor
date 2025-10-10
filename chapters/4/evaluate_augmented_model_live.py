@@ -89,7 +89,9 @@ def calculate_aircraft_heading(flight_coords, index):
 
 def evaluate_model_with_live_generation(model_path: str,
                                         flight_name: str = "main_evaluation",
-                                        num_eval_points: int = 20) -> dict:
+                                        num_eval_points: int = 100,
+                                        viz_points: int = 20,
+                                        calibration_path: str = None) -> dict:
     """
     Evaluate model on flight path with live image generation using aircraft perspective.
 
@@ -97,6 +99,8 @@ def evaluate_model_with_live_generation(model_path: str,
         model_path: Path to trained model
         flight_name: Flight path to evaluate
         num_eval_points: Number of points to evaluate along flight path
+        viz_points: Number of points to show in visualization (sampled from eval points)
+        calibration_path: Path to calibration data (optional)
 
     Returns:
         Dictionary with evaluation results
@@ -106,12 +110,21 @@ def evaluate_model_with_live_generation(model_path: str,
     print(f"  Model: {model_path}")
     print(f"  Flight: {flight_name}")
     print(f"  Evaluation points: {num_eval_points}")
+    print(f"  Visualization points: {viz_points}")
 
     device = get_device()
 
     # Try to detect if model has uncertainty by checking state dict keys
     state_dict = torch.load(model_path, map_location=device, weights_only=False)
     has_uncertainty = 'uncertainty_head.weight' in state_dict or 'coord_head.weight' in state_dict
+
+    # Load calibration if provided
+    calibration_factor = 1.0
+    if calibration_path and Path(calibration_path).exists():
+        with open(calibration_path, 'rb') as f:
+            calibration_data = pickle.load(f)
+            calibration_factor = calibration_data['calibration_factor']
+        print(f"  ✅ Loaded calibration factor: {calibration_factor:.4f}")
 
     # Load model
     model = BasicModel(predict_uncertainty=has_uncertainty)
@@ -121,6 +134,8 @@ def evaluate_model_with_live_generation(model_path: str,
 
     if has_uncertainty:
         print(f"  ✅ Detected uncertainty-enabled model")
+        if calibration_factor != 1.0:
+            print(f"  ✅ Using calibrated uncertainties")
 
     # Initialize terrain window for live extraction
     terrain_window = TerrainWindow()
@@ -157,13 +172,12 @@ def evaluate_model_with_live_generation(model_path: str,
             headings.append(aircraft_heading)
 
             # Extract terrain with aircraft perspective rotation
-            # Use realistic environmental effects
-            environmental_effects = {
-                'brightness': 1.0 + np.random.uniform(-0.1, 0.1),
-                'contrast': 1.0,
-                'fog_intensity': np.random.uniform(0.0, 0.2),
-                'noise_std': np.random.uniform(1.0, 4.0)
-            }
+            # Use environmental presets (same as training)
+            from navigation.environmental_presets import EnvironmentalPresets
+            if np.random.random() < 0.7:  # 70% probability like training
+                environmental_effects = EnvironmentalPresets.get_random_preset()
+            else:
+                environmental_effects = None
 
             terrain_tile = terrain_window.extract_model_input(
                 pixel_x, pixel_y,
@@ -173,8 +187,18 @@ def evaluate_model_with_live_generation(model_path: str,
 
             terrain_tiles.append(terrain_tile)
 
+            # Apply ColorJitter augmentation (same as training)
+            from torchvision import transforms
+            from PIL import Image
+            color_jitter = transforms.ColorJitter(
+                brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1
+            )
+            tile_pil = Image.fromarray(terrain_tile.astype('uint8'))
+            tile_pil = color_jitter(tile_pil)
+            terrain_tile_augmented = np.array(tile_pil)
+
             # Convert to tensor and normalize
-            tile_tensor = torch.from_numpy(terrain_tile).float().permute(2, 0, 1) / 255.0
+            tile_tensor = torch.from_numpy(terrain_tile_augmented).float().permute(2, 0, 1) / 255.0
             mean = torch.tensor([0.485, 0.456, 0.406])
             std = torch.tensor([0.229, 0.224, 0.225])
             tile_tensor = (tile_tensor - mean.view(3, 1, 1)) / std.view(3, 1, 1)
@@ -188,7 +212,8 @@ def evaluate_model_with_live_generation(model_path: str,
 
                 # Convert log variance to uncertainty in meters
                 std_dev = np.sqrt(np.exp(log_var))
-                uncertainty_m = std_dev * 7500 * 10  # Convert to meters
+                # Apply calibration to convert to expected error
+                uncertainty_m = std_dev * calibration_factor * 7500 * 10  # Convert to meters
                 uncertainties.append(uncertainty_m)
             else:
                 pred_coord = model(tile_tensor).cpu().numpy()[0]
@@ -240,6 +265,7 @@ def evaluate_model_with_live_generation(model_path: str,
         'terrain_tiles': terrain_tiles,
         'headings': headings,
         'has_uncertainty': has_uncertainty,
+        'viz_points': viz_points,  # How many points to show in visualization
         'statistics': {
             'mean_error_m': mean_error,
             'median_error_m': median_error,
@@ -347,17 +373,33 @@ def create_trajectory_visualization(eval_results: dict,
     visualizer = PredictionVisualizer()
     visualizer.load_satellite_map("../../data/boneyard/davis_monthan_stitched_map.jpg")
 
-    # Convert coordinates to pixel coordinates
-    true_coords_pixels = eval_results['trajectory_coords'] * 7500
-    pred_coords_pixels = eval_results['predictions'] * 7500
+    # Subsample points for visualization if requested
+    viz_points = eval_results.get('viz_points', len(eval_results['predictions']))
+    total_points = len(eval_results['predictions'])
+
+    if viz_points < total_points:
+        # Sample evenly across all evaluated points
+        viz_indices = np.linspace(0, total_points - 1, viz_points).astype(int)
+        print(f"  Showing {viz_points} of {total_points} evaluated points")
+    else:
+        viz_indices = np.arange(total_points)
+
+    # Convert coordinates to pixel coordinates (subsampled for visualization)
+    true_coords_pixels = eval_results['trajectory_coords'][viz_indices] * 7500
+    pred_coords_pixels = eval_results['predictions'][viz_indices] * 7500
+    viz_errors = eval_results['errors'][viz_indices]
 
     # Create flight_results dict
     flight_results = {
         'ground_truth': true_coords_pixels,
         'predictions': pred_coords_pixels,
-        'errors': eval_results['errors'],
-        'mean_error': eval_results['statistics']['mean_error_m']
+        'errors': viz_errors,
+        'mean_error': eval_results['statistics']['mean_error_m']  # Keep full statistics
     }
+
+    # Add uncertainties if available (also subsampled)
+    if eval_results.get('has_uncertainty') and 'uncertainties' in eval_results:
+        flight_results['uncertainties'] = eval_results['uncertainties'][viz_indices]
 
     # Use the standard visualization format
     visualizer.create_flight_path_viz(
@@ -374,10 +416,14 @@ def main():
                        help="Path to trained model")
     parser.add_argument("--flight", default="main_evaluation",
                        help="Flight path name")
-    parser.add_argument("--points", type=int, default=20,
+    parser.add_argument("--points", type=int, default=100,
                        help="Number of evaluation points")
+    parser.add_argument("--viz-points", type=int, default=20,
+                       help="Number of points to show in visualization")
     parser.add_argument("--fps", type=int, default=2,
                        help="Animation frame rate")
+    parser.add_argument("--calibration", default=None,
+                       help="Path to calibration data (optional)")
     args = parser.parse_args()
 
     print(f"📊 Augmented Model Evaluation (Live Generation)")
@@ -385,10 +431,11 @@ def main():
     print(f"Model: {args.model}")
     print(f"Flight: {args.flight}")
     print(f"Evaluation points: {args.points}")
+    print(f"Visualization points: {args.viz_points}")
 
     # Evaluate model with live generation
     eval_results = evaluate_model_with_live_generation(
-        args.model, args.flight, args.points
+        args.model, args.flight, args.points, args.viz_points, args.calibration
     )
 
     # Create evaluation animation

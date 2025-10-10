@@ -343,6 +343,7 @@ class PredictionVisualizer:
         predictions = flight_results['predictions']
         errors = flight_results['errors']
         mean_error = flight_results['mean_error']
+        uncertainties = flight_results.get('uncertainties', None)  # Optional
 
         fig, ax = plt.subplots(1, 1, figsize=(14, 10))
 
@@ -386,6 +387,24 @@ class PredictionVisualizer:
         step_size = max(1, len(ground_truth) // 40)  # Show ~40 points max
         indices = range(0, len(ground_truth), step_size)
 
+        # Draw uncertainty circles first (if available) so they appear under the points
+        if uncertainties is not None:
+            for i in indices:
+                # Convert uncertainty from meters to pixels
+                # uncertainties are already in meters, need to convert to pixels
+                uncertainty_pixels = uncertainties[i] / 10  # 10m per pixel
+                circle = plt.Circle(
+                    (predictions[i, 0], predictions[i, 1]),
+                    uncertainty_pixels,
+                    color='blue',
+                    fill=False,
+                    linewidth=2,
+                    linestyle='--',
+                    alpha=0.6,
+                    zorder=4
+                )
+                ax.add_patch(circle)
+
         # Plot sample actual points clearly visible
         ax.scatter(ground_truth[indices, 0], ground_truth[indices, 1],
                   s=100, c='green', marker='o', alpha=0.9,
@@ -418,15 +437,37 @@ Median Error: {np.median(errors):.0f}m
 Max Error: {np.max(errors):.0f}m
 Total Points: {len(errors)}"""
 
+        # Add uncertainty statistics if available
+        if uncertainties is not None:
+            mean_unc = np.mean(uncertainties)
+            stats_text += f"\n\nUncertainty (1σ):\nMean: {mean_unc:.0f}m"
+
         ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
                verticalalignment='top', fontsize=11,
                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
 
-        # Errors are already in meters from evaluation
-        ax.set_title(f'Complete Flight Path Navigation Analysis\n'
-                    f'Mean Error: {mean_error:.0f} meters - Navigation-Grade Precision',
-                    fontsize=16, fontweight='bold')
-        ax.legend(loc='lower right')
+        # Title - add uncertainty info if available
+        if uncertainties is not None:
+            title = f'Complete Flight Path Navigation Analysis with Uncertainty\n' \
+                   f'Mean Error: {mean_error:.0f}m - Mean Uncertainty: {np.mean(uncertainties):.0f}m (calibrated 1σ)'
+        else:
+            title = f'Complete Flight Path Navigation Analysis\n' \
+                   f'Mean Error: {mean_error:.0f} meters - Navigation-Grade Precision'
+
+        ax.set_title(title, fontsize=16, fontweight='bold')
+
+        # Add uncertainty circles to legend if present
+        if uncertainties is not None:
+            from matplotlib.patches import Patch
+            uncertainty_patch = Patch(facecolor='none', edgecolor='blue',
+                                     linewidth=2, linestyle='--',
+                                     label='Uncertainty (1σ, calibrated)')
+            handles, labels = ax.get_legend_handles_labels()
+            handles.append(uncertainty_patch)
+            labels.append('Uncertainty (1σ, calibrated)')
+            ax.legend(handles=handles, labels=labels, loc='lower right')
+        else:
+            ax.legend(loc='lower right')
 
         # Remove all axes, ticks, and labels for clean terrain view
         ax.set_xticks([])

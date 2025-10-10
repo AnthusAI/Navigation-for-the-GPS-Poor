@@ -106,7 +106,7 @@ class BasicModel(nn.Module):
         else:
             # Original architecture without uncertainty
             self.backbone.classifier = nn.Sequential(
-                nn.Dropout(0.4),
+                nn.Dropout(0.3),  # Reduced from 0.4 - not overfitting
                 nn.Linear(1024, 128),
                 nn.ReLU(),
                 nn.Linear(128, 2)
@@ -267,6 +267,7 @@ def train_model(model, train_loader, val_loader, epochs, lr, predict_uncertainty
 
     history = {'train_losses': [], 'val_losses': [], 'learning_rates': []}
     best_val_loss = float('inf')
+    best_val_euclidean = float('inf')  # Track best Euclidean error
     patience_counter = 0
     early_stopping_patience = 8  # Revert to original aggressive stopping
 
@@ -325,6 +326,8 @@ def train_model(model, train_loader, val_loader, epochs, lr, predict_uncertainty
         model.eval()
         val_loss = 0.0
         val_coord_loss = 0.0  # Track coordinate loss separately
+        val_euclidean_errors = []  # Track actual Euclidean errors for display
+
         with torch.no_grad():
             for batch_tiles, batch_coords in val_loader:
                 batch_tiles, batch_coords = batch_tiles.to(device), batch_coords.to(device)
@@ -357,12 +360,21 @@ def train_model(model, train_loader, val_loader, epochs, lr, predict_uncertainty
                     outputs = model(batch_tiles)
                     loss = criterion(outputs, batch_coords)
                     coord_loss = loss
+                    pred_coords = outputs
+
+                # Calculate actual Euclidean errors (same as evaluation)
+                euclidean_dists = torch.norm(pred_coords - batch_coords, dim=1)
+                euclidean_errors_m = euclidean_dists.cpu().numpy() * 7500 * 10
+                val_euclidean_errors.extend(euclidean_errors_m)
 
                 val_loss += loss.item()
 
         val_loss /= len(val_loader)
         if predict_uncertainty:
             val_coord_loss /= len(val_loader)
+
+        # Calculate mean Euclidean error for display
+        val_euclidean_mean = np.mean(val_euclidean_errors)
 
         # Update scheduler
         scheduler.step()
@@ -373,23 +385,8 @@ def train_model(model, train_loader, val_loader, epochs, lr, predict_uncertainty
         history['val_losses'].append(val_loss)
         history['learning_rates'].append(lr_current)
 
-        # Convert to meters for display
-        # For uncertainty models, use the coordinate loss component (pure MSE)
-        if predict_uncertainty:
-            # Debug: check for issues
-            if train_coord_loss < 0 or val_coord_loss < 0:
-                print(f"WARNING: Negative coord loss! train={train_coord_loss:.6f}, val={val_coord_loss:.6f}")
-            if np.isnan(train_coord_loss) or np.isnan(val_coord_loss):
-                print(f"WARNING: NaN in coord loss! train={train_coord_loss:.6f}, val={val_coord_loss:.6f}")
-
-            # Ensure non-negative before sqrt
-            train_m = np.sqrt(max(0, train_coord_loss)) * 7500 * 2.0
-            val_m = np.sqrt(max(0, val_coord_loss)) * 7500 * 2.0
-        else:
-            train_m = np.sqrt(max(0, train_loss)) * 7500 * 2.0
-            val_m = np.sqrt(max(0, val_loss)) * 7500 * 2.0
-
-        print(f"  Epoch {epoch+1:2d}/{epochs} | Train: {train_m:4.0f}m | Val: {val_m:4.0f}m | LR: {lr_current:.1e}")
+        # Display with actual Euclidean error for validation
+        print(f"  Epoch {epoch+1:2d}/{epochs} | Val (Euclidean): {val_euclidean_mean:4.0f}m | LR: {lr_current:.1e}")
 
         # Early stopping logic with model saving
         # Use coordinate loss for early stopping (what we actually care about)
@@ -397,11 +394,12 @@ def train_model(model, train_loader, val_loader, epochs, lr, predict_uncertainty
 
         if comparison_loss < best_val_loss:
             best_val_loss = comparison_loss
+            best_val_euclidean = val_euclidean_mean
             patience_counter = 0
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             model_path = f"artifacts/model_{timestamp}.pth"
             torch.save(model.state_dict(), model_path)
-            print(f"    → Saved best model: {model_path} ({val_m:.0f}m)")
+            print(f"    → Saved best model: {model_path} ({val_euclidean_mean:.0f}m)")
         else:
             patience_counter += 1
             if patience_counter >= early_stopping_patience:
@@ -414,15 +412,12 @@ def train_model(model, train_loader, val_loader, epochs, lr, predict_uncertainty
             break
 
     print(f"\n✅ Training completed!")
-    # For uncertainty models, we tracked coord loss separately
-    # For regular models, best_val_loss is already coord loss
-    best_error_m = np.sqrt(best_val_loss) * 7500 * 2.0
-    print(f"  Best validation error: {best_error_m:.0f} meters")
+    print(f"  Best validation error: {best_val_euclidean:.0f} meters")
     if predict_uncertainty:
         print(f"  (with uncertainty estimation enabled)")
     print(f"  Total epochs: {epoch+1}")
 
-    return model, history, model_path, best_val_loss
+    return model, history, model_path, best_val_euclidean
 
 def main():
     parser = argparse.ArgumentParser()
@@ -462,21 +457,12 @@ def main():
 
     # Create datasets based on augmentation settings
     if args.enable_augmentation:
-        print(f"  Using robust augmentation pipeline:")
-        print(f"    Flight path: {args.flight_name}")
-        print(f"    Rotation: {not args.disable_rotation}")
-        print(f"    Scale: {not args.disable_scale}")
-        print(f"    Environmental noise: {not args.disable_noise}")
-
-        dataset = RobustNavigationDataset(
-            tiles=tiles,
-            coordinates=coordinates,
-            flight_name=args.flight_name,
-            enable_rotation=not args.disable_rotation,
-            enable_scale=not args.disable_scale,
-            enable_environmental_noise=not args.disable_noise,
-            noise_probability=args.noise_prob
-        )
+        print(f"  Using pre-augmented dataset:")
+        print(f"    Tiles already include: aircraft perspective, variable scale, environmental effects")
+        print(f"    Applying additional color jitter augmentation during training")
+        # Use simple dataset with pre-augmented tiles
+        # The tiles from the generator already have rotation, scale, and environmental effects
+        dataset = TerrainDataset(tiles, coordinates)
     else:
         print(f"  Using basic dataset (legacy mode)")
         dataset = TerrainDataset(tiles, coordinates)
@@ -498,7 +484,7 @@ def main():
     # Check if using terrain difficulty model (has 3 outputs instead of 2)
     using_terrain_difficulty = (args.predict_uncertainty and args.uncertainty_arch == "terrain_difficulty")
 
-    model, history, model_path, best_val_loss = train_model(
+    model, history, model_path, best_val_euclidean = train_model(
         model, train_loader, val_loader, args.epochs, args.lr,
         predict_uncertainty=args.predict_uncertainty,
         uncertainty_arch=args.uncertainty_arch if args.predict_uncertainty else "scalar",
@@ -506,13 +492,11 @@ def main():
     )
 
     # Save results
-    # For uncertainty models, we need to track coord loss separately for proper error metric
-    # The history contains combined loss, but best_val_loss is the coord loss
     results = {
         'args': vars(args),
         'history': history,
         'model_path': model_path,
-        'best_val_error_meters': np.sqrt(best_val_loss) * 7500 * 2.0,  # Use best_val_loss which is coord loss
+        'best_val_error_meters': float(best_val_euclidean),
         'uncertainty_model': args.predict_uncertainty
     }
 

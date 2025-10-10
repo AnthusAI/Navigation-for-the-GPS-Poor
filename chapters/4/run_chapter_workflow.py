@@ -71,12 +71,11 @@ class Chapter4Workflow:
                 'epochs': 50,
                 'lr': 0.0001,
                 'batch_size': 16,
-                'noise_prob': 0.7,
-                'predict_uncertainty': True,
-                'uncertainty_arch': 'scalar'
+                'noise_prob': 0.7
             },
             'evaluation': {
-                'num_points': 20,
+                'num_points': 100,  # Evaluate on 100 points for accurate statistics
+                'viz_points': 20,   # Show 20 points in visualization
                 'fps': 2
             }
         }
@@ -179,12 +178,6 @@ class Chapter4Workflow:
             "--noise-prob", str(config['noise_prob'])
         ]
 
-        # Add uncertainty estimation if enabled
-        if config.get('predict_uncertainty', False):
-            command.append("--predict-uncertainty")
-            if 'uncertainty_arch' in config:
-                command.extend(["--uncertainty-arch", config['uncertainty_arch']])
-
         success, stdout, stderr = self.run_command(
             command,
             f"Training model ({config['arch']}, {config['epochs']} epochs)"
@@ -213,6 +206,37 @@ class Chapter4Workflow:
                 'config': config
             }
 
+    def calibrate_uncertainty(self, model_path: str, dataset_path: str) -> Dict:
+        """Calibrate uncertainty predictions using validation set."""
+        self.log(f"\n🎯 Step 3: Calibrating Uncertainty")
+        self.log("=" * 40)
+
+        command = [
+            "python", "calibrate_uncertainty.py",
+            "--model", model_path,
+            "--dataset", dataset_path
+        ]
+
+        success, stdout, stderr = self.run_command(
+            command,
+            "Calibrating uncertainty predictions"
+        )
+
+        if success:
+            return {
+                'success': True,
+                'model_path': model_path,
+                'dataset_path': dataset_path,
+                'calibration_path': 'artifacts/uncertainty_calibration.pkl',
+                'stdout': stdout,
+                'stderr': stderr
+            }
+        else:
+            return {
+                'success': False,
+                'error': stderr
+            }
+
     def evaluate_model(self, model_path: str) -> Dict:
         """Evaluate model with live generation."""
         self.log(f"\n📈 Step 3: Model Evaluation")
@@ -225,6 +249,7 @@ class Chapter4Workflow:
             "--model", model_path,
             "--flight", self.config['data_generation']['flight_name'],
             "--points", str(config['num_points']),
+            "--viz-points", str(config.get('viz_points', 20)),
             "--fps", str(config['fps'])
         ]
 
@@ -277,6 +302,7 @@ class Chapter4Workflow:
         }
 
         # Save results summary
+        self.results_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
         results_file = self.results_dir / "workflow_summary.json"
         with open(results_file, 'w') as f:
             json.dump(workflow_summary, f, indent=2, default=str)
@@ -328,7 +354,8 @@ class Chapter4Workflow:
         original_config = self.config.copy()
         self.config['data_generation']['num_samples'] = 500
         self.config['training']['epochs'] = 10
-        self.config['evaluation']['num_points'] = 10
+        self.config['evaluation']['num_points'] = 50  # Still evaluate on many points
+        self.config['evaluation']['viz_points'] = 10  # But show fewer in viz
 
         try:
             results = self.run_full_pipeline()
@@ -358,6 +385,22 @@ class Chapter4Workflow:
         for name, component_result in components:
             status = "✅" if component_result.get('success', False) else "❌"
             self.log(f"   {status} {name}")
+
+        # Performance metrics
+        if results['training'].get('success') and results['evaluation'].get('success'):
+            self.log(f"\n📈 Performance Metrics:")
+
+            # Extract training validation error
+            training_stdout = results['training'].get('stdout', '')
+            if 'Best validation error:' in training_stdout:
+                val_error = training_stdout.split('Best validation error: ')[1].split(' meters')[0]
+                self.log(f"   Training (validation): {val_error}m")
+
+            # Extract evaluation metrics
+            eval_stdout = results['evaluation'].get('stdout', '')
+            if 'Mean error:' in eval_stdout:
+                mean_error = eval_stdout.split('Mean error: ')[1].split('m')[0]
+                self.log(f"   Evaluation (mean): {mean_error}m")
 
         # Visualizations created
         if results['evaluation'].get('success'):
